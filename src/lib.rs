@@ -26,7 +26,7 @@ mod macro_core;
 /// ```
 #[proc_macro_attribute]
 pub fn network(attr: TokenStream, item: TokenStream) -> proc_macro::TokenStream {
-  let cge_path = get_cge_path!(attr, "#[network(\"path/to/cge/file.cge\")]");
+  let cge_path = get_cge_path!(attr, "network");
   let item = syn::parse_macro_input!(item as syn::Item);
   macro_core::core(cge_path, item, None)
 }
@@ -34,7 +34,7 @@ pub fn network(attr: TokenStream, item: TokenStream) -> proc_macro::TokenStream 
 /// Identical to `#[network("path/to/file.cge")]`, but prevents compilation if network is non-recurrent.
 #[proc_macro_attribute]
 pub fn recurrent(attr: TokenStream, item: TokenStream) -> proc_macro::TokenStream {
-  let cge_path = get_cge_path!(attr, "#[recurrent(\"path/to/cge/file.cge\")]");
+  let cge_path = get_cge_path!(attr, "recurrent");
   let item = syn::parse_macro_input!(item as syn::Item);
   macro_core::core(cge_path, item, Some(true))
 }
@@ -42,7 +42,7 @@ pub fn recurrent(attr: TokenStream, item: TokenStream) -> proc_macro::TokenStrea
 /// Identical to `#[network("path/to/file.cge")]`, but prevents compilation if network is recurrent.
 #[proc_macro_attribute]
 pub fn nonrecurrent(attr: TokenStream, item: TokenStream) -> proc_macro::TokenStream {
-  let cge_path = get_cge_path!(attr, "#[nonrecurrent(\"path/to/cge/file.cge\")]");
+  let cge_path = get_cge_path!(attr, "nonrecurrent");
   let item = syn::parse_macro_input!(item as syn::Item);
   macro_core::core(cge_path, item, Some(false))
 }

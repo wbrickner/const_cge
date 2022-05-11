@@ -65,8 +65,8 @@ pub fn synthesize(cge_path: String) -> Synthesis {
           }
           /// Overwrite the networks recurrent state with the given one.
           /// - Useful for "restoring a snapshot" of the network's recurrent state (even if you don't know what any part of it really means).
-          pub fn set_recurrent_state(&mut self, persistence: [f64; #recurrency_count]) {
-            self.persistence = persistence;
+          pub fn set_recurrent_state(&mut self, persistence: &[f64; #recurrency_count]) {
+            self.persistence = persistence.clone();
           }
 
           /// Get a reference to the internal recurrent state.
