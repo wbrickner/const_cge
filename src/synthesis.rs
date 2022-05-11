@@ -103,11 +103,12 @@ pub fn synthesize(invocation: &Invocation) -> Synthesis {
     } else {
       format!(
 "Network is recurrent (stateful)
-  - {count} persistent state{plural}: `{size} bytes`
+  - {state_count} persistent state{state_plural}: `{byte_count} byte{byte_plural}`
   - `Self::evaluate` must take `&mut self`",
-        count = recurrency_count,
-        plural = if recurrency_count == 1 { "" } else { "s" },
-        size = recurrency_count * numeric_bytes
+        state_count = recurrency_count,
+        state_plural = if recurrency_count == 1 { "" } else { "s" },
+        byte_count = recurrency_count * numeric_bytes,
+        byte_plural = if recurrency_count * numeric_bytes == 1 { "" } else { "s" },
       )
     }
   );
@@ -152,13 +153,13 @@ pub fn synthesize(invocation: &Invocation) -> Synthesis {
     // - These are all pure functions, but formally you're not able to call them `const` if they do any floating point math inside,
     //   because (very annoyingly) it could produce f64::NaN at compile time, the bit pattern of which is different on different machines,
     //   making it a runtime matter.
-    #activation_constness fn activation(x: #numeric_token) -> numeric_token { #activation_expression }
+    #activation_constness fn activation(x: #numeric_token) -> #numeric_token { #activation_expression }
   };
 
   let evaluate_function = {
     // should the `evaluate` function get a `&mut self`, or can it be a static function?
     let self_argument = if recurrency_count == 0 { quote!() } else { quote!(&mut self,) };
-    let numeric_comment = format!("-  - how fast your target hardware can perform numeric ({}) operations", numeric_token);
+    let numeric_comment = format!("-  - how fast your target hardware can perform numeric (`{}`) operations", numeric_token);
 
     quote! {
       /// Evaluate the network for a single input vector.
@@ -168,7 +169,7 @@ pub fn synthesize(invocation: &Invocation) -> Synthesis {
       /// - should be near the fundamental speed/size limit given:
       /// -  - what LLVM can _safely_ emit (optimization through elision, reordering, vectorization, register reuse, etc)
       #[doc = #numeric_comment]
-      pub fn evaluate(#self_argument inputs: &[numeric_token; #input_count], outputs: &mut [numeric_token; #output_count]) {
+      pub fn evaluate(#self_argument inputs: &[#numeric_token; #input_count], outputs: &mut [#numeric_token; #output_count]) {
         #(#computations_list)*
       }
     }

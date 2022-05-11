@@ -16,23 +16,28 @@ impl syn::parse::Parse for crate::macro_core::Config {
 
     // parse the argument name
     let numeric_type = {
-      if let Some(arg_name) = input.parse::<Ident>().ok() {
-        if arg_name != "numeric_type" { return Err(syn::Error::new_spanned(arg_name, "Nonsense attribute `{}`. Expected either `numeric_type` or nothing.")); }
+      if let Some(_) = input.parse::<Option<Token![,]>>().ok() {
+        if let Some(arg_name) = input.parse::<Ident>().ok() {
+          if arg_name != "numeric_type" { return Err(syn::Error::new_spanned(arg_name, "Nonsense attribute `{}`. Expected either `numeric_type` or nothing.")); }
 
-        // discard '='
-        let _: Token![=] = input.parse()
-          .unwrap_or_else(|_| panic!("Expected '=' after `numeric_type` argument."));
+          // discard '='
+          let _: Token![=] = input.parse()
+            .unwrap_or_else(|_| panic!("Expected '=' after `numeric_type` argument."));
 
-        // parse the numeric type
-        let name = input.parse::<TypePath>()
-          .unwrap_or_else(|_| panic!("Expected type after `numeric_type = `. Please choose one of {{ {} }}", NumericType::VARIANTS_LIST));
-        let type_ident = name.path.get_ident()
-          .unwrap_or_else(|| panic!("Invalid `numeric_type`. Please use one of {{ {} }}.", NumericType::VARIANTS_LIST));
+          // parse the numeric type
+          let name = input.parse::<TypePath>()
+            .unwrap_or_else(|_| panic!("Expected type after `numeric_type = `. Please choose one of {{ {} }}", NumericType::VARIANTS_LIST));
+          let type_ident = name.path.get_ident()
+            .unwrap_or_else(|| panic!("Invalid `numeric_type`. Please use one of {{ {} }}.", NumericType::VARIANTS_LIST));
 
-        match type_ident.to_string().as_ref() {
-          "f32" => NumericType::Float32,
-          "f64" => NumericType::Float64,
-          _ => panic!("Invalid `numeric_type`. Please use one of {{ {} }}.", NumericType::VARIANTS_LIST)
+          match type_ident.to_string().as_ref() {
+            "f32" => NumericType::Float32,
+            "f64" => NumericType::Float64,
+            _ => panic!("Invalid `numeric_type`. Please use one of {{ {} }}.", NumericType::VARIANTS_LIST)
+          }
+        } else {
+          // assume f64 if not specified
+          NumericType::Float64
         }
       } else {
         // assume f64 if not specified
@@ -44,7 +49,7 @@ impl syn::parse::Parse for crate::macro_core::Config {
   }
 }
 
-macro_rules! get_invocation {
+macro_rules! parse_invocation {
   (
     $attr_stream: ident,
     $item_stream: ident,
@@ -67,4 +72,4 @@ macro_rules! get_invocation {
 }
 
 #[allow(unused_imports)]
-pub(crate) use get_invocation;
+pub(crate) use parse_invocation;

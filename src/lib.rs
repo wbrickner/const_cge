@@ -7,7 +7,7 @@ mod recurrence;
 mod activations;
 mod synthesis;
 mod macro_core;
-#[macro_use] mod utils;
+#[macro_use] mod invocation_parser;
 
 /// Adds the required fields and functions for executing a network loaded from a CGE file.
 /// - If your network has recurrent     architecture, it only works on unit structs (no fields).
@@ -27,14 +27,14 @@ mod macro_core;
 /// ```
 #[proc_macro_attribute]
 pub fn network(attr: TokenStream, item: TokenStream) -> proc_macro::TokenStream {
-  let invocation = get_invocation!(attr, item, None);
+  let invocation = parse_invocation!(attr, item, None);
   macro_core::core(invocation)
 }
 
 /// Identical to `#[network("path/to/file.cge")]`, but prevents compilation if network is non-recurrent.
 #[proc_macro_attribute]
 pub fn recurrent(attr: TokenStream, item: TokenStream) -> proc_macro::TokenStream {
-  let invocation = get_invocation!(attr, item, Some(true));
+  let invocation = parse_invocation!(attr, item, Some(true));
   // let item = syn::parse_macro_input!(item as syn::Item);
   macro_core::core(invocation)
 }
@@ -42,6 +42,6 @@ pub fn recurrent(attr: TokenStream, item: TokenStream) -> proc_macro::TokenStrea
 /// Identical to `#[network("path/to/file.cge")]`, but prevents compilation if network is recurrent.
 #[proc_macro_attribute]
 pub fn nonrecurrent(attr: TokenStream, item: TokenStream) -> proc_macro::TokenStream {
-  let invocation = get_invocation!(attr, item, Some(false));
+  let invocation = parse_invocation!(attr, item, Some(false));
   macro_core::core(invocation)
 }
