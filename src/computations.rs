@@ -1,41 +1,29 @@
-#![forbid(unsafe_code)]
-
 use cge::{gene::GeneExtras, Network};
 use proc_macro2::TokenStream;
 use quote::{quote, format_ident};
 use std::{collections::HashMap, ops::Range};
 use crate::stack::Stack;
 
-const BIAS_GENE_VALUE: f64 = 1.0;
-
 /// Generate a list of low-level floating-point operations from CGE.
 /// This is the meat.
 pub fn evaluate(
-  network: &mut Network,
-  range: Range<usize>,
-  neuron_update: bool,
-  j: bool,
-  root: bool,
-  computations: &mut Vec<TokenStream>,
-  latest_output: &mut u64,
-
-  // a complete table mapping all neuron IDs to the index in the "persistence array"
-  // - the persistence array is a minimal set of floats that are needed to support the recurrent behavior of the network
-  // - if there are 6 "backwards" connections, then the persistence array will need 6 floats, and this hashmap will contain
-  //   6 entries.
-  recurrence_table: &HashMap<usize, usize>,
+  network: &mut Network,                    // The network to evaluate
+  range: Range<usize>,                      // Range of genes to evaluate
+  neuron_update: bool,                      // Should the execution of this subnetwork update the neuron values?
+  j: bool,                                  // I do not understand this flag. You caught me.
+  root: bool,                               // Is this the 'root' invocation of this function? used for writing into the outputs array.
+  computations: &mut Vec<TokenStream>,      // Computations tracks the actual expressions & assignments (e.g. `let c2 = (w0 * c0) + (w1 * c1);`)
+  latest_output: &mut u64,                  // Counts upwards and is used for making variable names
+  recurrence_table: &HashMap<usize, usize>, // A complete table mapping all neuron IDs to the index in the "persistence array"
+                                            // - the persistence array is a minimal set of floats that are needed to support the recurrent behavior of the network
+                                            // - if there are 6 "backwards" connections, then the persistence array will need 6 floats, and this hashmap will contain
+                                            //   6 entries.
 ) -> Option<usize> {
-  // debug!("evaluate_slice in range: {:?}", range);
-
-  let mut gene_index = range.end;
-
-  // stack tracks the /names/ of past results (e.g. `let c2`)
-  let mut stack = Stack::new();
-  // computations tracks the actual expressions & assignments (e.g. `let c2 = (w0 * c0) + (w1 * c1);`)
-
-  let activation = quote! { Self::activation };
-
+  let mut stack = Stack::new();                // stack tracks the /names/ of past results (e.g. `let c2`)
+  let activation = quote! { Self::activation }; // represents a call to the activation function
+  
   // Iterate backwards over the specified slice
+  let mut gene_index = range.end;
   while gene_index >= range.start {
     let variant = network.genome[gene_index].variant;
 
@@ -93,6 +81,7 @@ pub fn evaluate(
           }
         }
 
+        // todo: I think this is wrong actually
         // when j flag is set, do not include weight of last neuron link as jump forward has a different weight
         if !j || gene_index != range.start {
           // otherwise use regular weight of connection in stack
@@ -134,7 +123,6 @@ pub fn evaluate(
 
         // the recursive call to evaluate modified latest_output, the result id is latest_output - 1
         // Q: can a subnetwork be emtpy, thereby leaving latest_output unchanged? worrying.
-
         let subnetwork_result_id = format_ident!("c{}", *latest_output - 1);
         let weighted_result_id = format_ident!("c{}", latest_output);
         *latest_output += 1;
@@ -148,12 +136,12 @@ pub fn evaluate(
         let gene = &network.genome[gene_index];
         let persistence_index = recurrence_table
           .get(&gene.id)
-          .expect("Found recurrent connection with invalid neuron id");
+          .expect("Corrupt CGE: encountered a recurrent connection with an invalid neuron ID");
 
-        // assert that `network` agrees this neuron exists / this ID is valid
+        // assert that `network` agrees that this neuron exists / this ID is valid
         assert!(
           network.get_neuron_index(gene.id).is_some(),
-          "Found recurrent connection with invalid neuron id"
+          "Corrupt CGE: encountered a recurrent connection with an invalid neuron ID"
         );
 
         // this is useless code (`let c137 = self.persistence[2];`)
@@ -167,17 +155,13 @@ pub fn evaluate(
         });
 
         stack.push(result_id);
-
-        // if let GeneExtras::Neuron(ref current_value, _) = neuron.variant {
-        //   stack.push(gene.weight * *current_value);
-        // }
       }
       GeneExtras::Bias => {
         // If the gene is a bias input, push the bias constant multiplied by the genes
         // weight onto the stack
 
         let gene = &network.genome[gene_index];
-        let bias = gene.weight * BIAS_GENE_VALUE;
+        let bias = gene.weight;
 
         // this is more junk rustc will const-propagate / LLVM will optimize (`let c137 = -0.02302234`);
         // NOTE: maybe it could be helpful if we declare like `const c137: #NUMERIC_TYPE = -0.02302234;`?

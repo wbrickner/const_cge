@@ -5,6 +5,7 @@ macro_rules! get_cge_path {
   ) => {
     {
       // parse first stream item as expression (I am bad at macros this is all I could manage lol)
+      // somebody good at macros please help me
       let expression = syn::parse_macro_input!($stream as syn::Expr);
 
       match expression {

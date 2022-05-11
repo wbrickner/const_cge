@@ -24,7 +24,7 @@ pub fn constness(activation: Activation) -> TokenStream {
     //
     // (used to be) bit hacks, no floating point math:
     //
-    Activation::Linear       => quote! {       },
+    Activation::Linear       => quote! { const },
     Activation::Threshold    => quote! {       },
     Activation::Relu         => quote! {       },
     Activation::Sign         => quote! {       },

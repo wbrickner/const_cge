@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-
 use cge::{Network, gene::GeneExtras};
 
 pub fn identify_recurrence(network: &Network) -> HashMap<usize, usize> {
