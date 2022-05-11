@@ -1,7 +1,7 @@
-use cge::{Network, gene::GeneExtras};
+use cge::{Network, gene::GeneExtras, Activation};
 use proc_macro2::TokenStream;
 use quote::quote;
-use crate::{recurrence, evaluator, activations, macro_core::Invocation};
+use crate::{recurrence, evaluator, macro_core::Invocation, numeric_type::NumericType};
 
 /// - Number of recurrent neural states we must retain (0 implies nonrecurrent architecture)
 /// - A bundle of rust code to be interpolated in the final step
@@ -10,7 +10,6 @@ pub struct Synthesis {
   pub documentation:       TokenStream,
   pub persistence_field:   TokenStream,
   pub persistence_methods: TokenStream,
-  pub activation_function: TokenStream,
   pub evaluate_function:   TokenStream,
 }
 
@@ -20,6 +19,21 @@ fn load_network(cge_path: &str) -> Network {
   match network {
     Ok(n) => n,
     Err(e) => panic!("Failed to open CGE file ({})", e)
+  }
+}
+
+fn activation_path(activation: Activation, numeric_type: NumericType) -> TokenStream {
+  let numeric_type = numeric_type.token();
+
+  match activation {
+    Activation::Linear       => quote! { const_cge::activations::#numeric_type::linear },
+    Activation::Threshold    => quote! { const_cge::activations::#numeric_type::threshold },
+    Activation::Relu         => quote! { const_cge::activations::#numeric_type::relu },
+    Activation::Sign         => quote! { const_cge::activations::#numeric_type::sign },
+    Activation::Sigmoid      => quote! { const_cge::activations::#numeric_type::sigmoid },
+    Activation::Tanh         => quote! { const_cge::activations::#numeric_type::tanh },
+    Activation::SoftSign     => quote! { const_cge::activations::#numeric_type::soft_sign },
+    Activation::BentIdentity => quote! { const_cge::activations::#numeric_type::bent_identity },
   }
 }
 
@@ -33,6 +47,12 @@ pub fn synthesize(invocation: &Invocation) -> Synthesis {
 
   let size = network.size;
   let activation = network.function.clone();
+  // gimme the path to an optimized implementation for the activation function
+  // (e.g. `const_cge::activations::f32::relu`)
+  // - this allows LLVM to easily see the function bodies are shared between multiple networks,
+  //   reducing code size (and perhaps compilation time).
+  let activation_fn_path = activation_path(activation, invocation.config.numeric_type);
+
   let output_count = evaluator::evaluate(
     &mut network, 
     0..size,
@@ -42,18 +62,14 @@ pub fn synthesize(invocation: &Invocation) -> Synthesis {
     &mut computations_list, 
     &mut 0, 
     &recurrence_table,
-    invocation.config.numeric_type
+    invocation.config.numeric_type,
+    activation_fn_path
   ).expect("Corrupt CGE: network appears to have no outputs");
 
   let recurrency_count = recurrence_table.len();
   let input_count = network.genome.iter().filter(|g| matches!(g.variant, GeneExtras::Input(_))).count();
   let numeric_token = invocation.config.numeric_type.token();
   let numeric_bytes = invocation.config.numeric_type.size_of();
-
-  // gimme an optimized expression for the activation function
-  let activation_expression = activations::expression(activation, invocation.config.numeric_type);
-  // now, can that expression be const?
-  let activation_constness = activations::constness(activation, invocation.config.numeric_type);
 
   // generate a 'persistence' field and access methods (only if neccessary)
   let (persistence_field, persistence_methods) = {
@@ -147,15 +163,6 @@ pub fn synthesize(invocation: &Invocation) -> Synthesis {
     }
   };
 
-  let activation_function = quote! {
-    // LLVM will inline this function if it thinks its a good idea.
-    // - No activation may allocate, no activation may mutate anything else.
-    // - These are all pure functions, but formally you're not able to call them `const` if they do any floating point math inside,
-    //   because (very annoyingly) it could produce f64::NaN at compile time, the bit pattern of which is different on different machines,
-    //   making it a runtime matter.
-    #activation_constness fn activation(x: #numeric_token) -> #numeric_token { #activation_expression }
-  };
-
   let evaluate_function = {
     // should the `evaluate` function get a `&mut self`, or can it be a static function?
     let self_argument = if recurrency_count == 0 { quote!() } else { quote!(&mut self,) };
@@ -180,7 +187,6 @@ pub fn synthesize(invocation: &Invocation) -> Synthesis {
     documentation,
     persistence_field,
     persistence_methods,
-    activation_function,
     evaluate_function,
   }
 }

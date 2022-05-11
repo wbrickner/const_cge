@@ -2,7 +2,7 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{Item, parse_quote, Fields};
-use crate::numeric_type::NumericType;
+use crate::{numeric_type::NumericType, recurrence::RecurrencyConstraint};
 use super::synthesis::{synthesize, Synthesis};
 
 /// All the invocation information.
@@ -13,7 +13,7 @@ pub struct Invocation {
   pub item: Item,
 
   /// Constraint on the recurrency of the network
-  pub recurrency_constraint: Option<bool>
+  pub recurrency_constraint: RecurrencyConstraint
 }
 
 /// Details about the invocation config of the macro.
@@ -31,20 +31,19 @@ pub fn core(invocation: Invocation) -> TokenStream {
     documentation,
     persistence_field,
     persistence_methods,
-    activation_function,
     evaluate_function
   } = synthesize(&invocation);
 
   // if the recurrency of the network does not conform to our constraint, panic.
   match invocation.recurrency_constraint {
     // no constraint
-    None => {},
+    RecurrencyConstraint::DontCare  => {},
 
-    // demand recurrency
-    Some(true)  => if recurrency_count == 0 { panic!("Network is not recurrent (it was demanded)."); },
+    // require recurrency
+    RecurrencyConstraint::Required  => if recurrency_count == 0 { panic!("Network is not recurrent (it was demanded)."); },
 
-    // demand non-recurrency
-    Some(false) => if recurrency_count != 0 { panic!("Network is recurrent (it was forbidden)."); }
+    // forbid recurrency
+    RecurrencyConstraint::Forbidden => if recurrency_count != 0 { panic!("Network is recurrent (it was forbidden)."); }
   }
 
   // fail for enum and non-unit structs (ONLY IF the network requires a persistence field).
@@ -95,7 +94,6 @@ pub fn core(invocation: Invocation) -> TokenStream {
 
     impl #name {
       #persistence_methods
-      #activation_function
       #evaluate_function
     }
   }.into()

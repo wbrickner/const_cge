@@ -19,9 +19,9 @@ pub fn evaluate(
                                             // - if there are 6 "backwards" connections, then the persistence array will need 6 floats, and this hashmap will contain
                                             //   6 entries.
   numeric_type: NumericType,                // The _target_ numeric type to be used in the generated code.
+  activation:   TokenStream                 // Path to optimized activation function (e.g. `const_cge::activations::f32::relu`)
 ) -> Option<usize> {
   let mut stack = Stack::new();                // stack tracks the /names/ of past results (e.g. `let c2`)
-  let activation = quote! { Self::activation }; // represents a call to the activation function
   
   // Iterate backwards over the specified slice
   let mut gene_index = range.end;
@@ -119,7 +119,8 @@ pub fn evaluate(
           computations,
           latest_output,
           recurrence_table,
-          numeric_type
+          numeric_type,
+          activation.clone()
         );
 
         // the recursive call to evaluate modified latest_output, the result id is latest_output - 1

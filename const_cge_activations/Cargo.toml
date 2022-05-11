@@ -1,9 +1,9 @@
 [package]
-name = "const_cge"
+name = "const_cge_activations"
 version = "0.1.0"
 edition = "2021"
 authors = ["Will Brickner <wgbrickner@gmail.com>"]
-description = "Common Genetic Encoding to floating point instructions at compile time."
+description = "Shared activation function implementations for const_cge"
 repository = "https://github.com/wbrickner/const_cge"
 documentation = "https://docs.rs/const_cge"
 readme = "README.md"
@@ -16,10 +16,6 @@ categories = [
   "science::robotics",
   "computer-vision"
 ]
-
-[dependencies]
-const_cge_macro = { path = "./const_cge_macro/" }
-const_cge_activations = { path = "./const_cge_activations/" }
 
 [badges]
 maintenence = { status = "passively-maintained" }

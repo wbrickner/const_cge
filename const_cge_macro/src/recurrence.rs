@@ -1,6 +1,13 @@
 use std::collections::HashMap;
 use cge::{Network, gene::GeneExtras};
 
+#[derive(Copy, Clone)]
+pub enum RecurrencyConstraint {
+  Required,
+  Forbidden,
+  DontCare
+}
+
 pub fn identify_recurrence(network: &Network) -> HashMap<usize, usize> {
   // literally just list all `Recurrent` genes that exist in the network. 
   // The ID field is the /source/ of the recurrence,
