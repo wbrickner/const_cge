@@ -2,9 +2,30 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{Item, parse_quote, Fields};
-use super::implementations::{synthesize, Synthesis};
+use crate::numeric_type::NumericType;
+use super::synthesis::{synthesize, Synthesis};
 
-pub fn core(cge_path: String, item: Item, recurrency_constraint: Option<bool>) -> TokenStream {
+/// All the invocation information.
+pub struct Invocation {
+  pub config: Config,
+
+  /// The item on which we are implementing (unit struct, possibly an enum).
+  pub item: Item,
+
+  /// Constraint on the recurrency of the network
+  pub recurrency_constraint: Option<bool>
+}
+
+/// Details about the invocation config of the macro.
+pub struct Config {
+  /// path to the network
+  pub cge_path:     String,
+
+  /// The **target** numeric type.
+  pub numeric_type: NumericType
+}
+
+pub fn core(invocation: Invocation) -> TokenStream {
   let Synthesis {
     recurrency_count,
     documentation,
@@ -12,10 +33,10 @@ pub fn core(cge_path: String, item: Item, recurrency_constraint: Option<bool>) -
     persistence_methods,
     activation_function,
     evaluate_function
-  } = synthesize(cge_path);
+  } = synthesize(&invocation);
 
   // if the recurrency of the network does not conform to our constraint, panic.
-  match recurrency_constraint {
+  match invocation.recurrency_constraint {
     // no constraint
     None => {},
 
@@ -27,7 +48,7 @@ pub fn core(cge_path: String, item: Item, recurrency_constraint: Option<bool>) -
   }
 
   // fail for enum and non-unit structs (ONLY IF the network requires a persistence field).
-  let name = match item {
+  let name = match invocation.item {
     syn::Item::Struct(ref s) => {
       if !matches!(s.fields, Fields::Unit) {
         if recurrency_count != 0 {
@@ -53,7 +74,7 @@ pub fn core(cge_path: String, item: Item, recurrency_constraint: Option<bool>) -
     _ => panic!("Unsupported language construct (`struct` and `enum` only).")
   };
 
-  let item = if let Item::Struct(mut s) = item {
+  let item = if let Item::Struct(mut s) = invocation.item.clone() {
     // we now need to add the recurrent data field
     match &s.fields {
       // unit structs => MyStruct { #p } (if needed)
@@ -64,7 +85,7 @@ pub fn core(cge_path: String, item: Item, recurrency_constraint: Option<bool>) -
 
     Item::Struct(s)
   } else {
-    item
+    invocation.item
   };
 
   quote! {

@@ -2,7 +2,7 @@ use cge::{gene::GeneExtras, Network};
 use proc_macro2::TokenStream;
 use quote::{quote, format_ident};
 use std::{collections::HashMap, ops::Range};
-use crate::stack::Stack;
+use crate::{stack::Stack, numeric_type::NumericType};
 
 /// Generate a list of low-level floating-point operations from CGE.
 /// This is the meat.
@@ -18,6 +18,7 @@ pub fn evaluate(
                                             // - the persistence array is a minimal set of floats that are needed to support the recurrent behavior of the network
                                             // - if there are 6 "backwards" connections, then the persistence array will need 6 floats, and this hashmap will contain
                                             //   6 entries.
+  numeric_type: NumericType,                // The _target_ numeric type to be used in the generated code.
 ) -> Option<usize> {
   let mut stack = Stack::new();                // stack tracks the /names/ of past results (e.g. `let c2`)
   let activation = quote! { Self::activation }; // represents a call to the activation function
@@ -32,7 +33,7 @@ pub fn evaluate(
         // If the gene is an input, push its value multiplied by the inputs weight onto
         // the stack
         let (input_weighting, input_id, _) = network.genome[gene_index].ref_input().unwrap();
-        // stack.push(input_weighting * value);
+        let input_weighting = numeric_type.naive_conversion(input_weighting);
 
         let result_id = format_ident!("c{}", latest_output);
         *latest_output += 1;
@@ -47,6 +48,7 @@ pub fn evaluate(
         // If the gene is a neuron, pop a number (the neurons input count) of inputs
         // off the stack, and push the transfer function applied to the sum of these
         // inputs multiplied by the neurons weight onto the stack
+        // TODO: why are you not using this weight?
         let (weight, neuron_id, _, inputs) =
           network.genome[gene_index].ref_mut_neuron().unwrap();
 
@@ -68,10 +70,6 @@ pub fn evaluate(
         // TODO: this may the hint that this neuron is recurrent, or something. IDK.
         // UPDATE: I think it is not about recurrence, and we may not need this anymore.
 
-        // if neuron_update {
-          // *value = new_value;
-        // }
-
         if neuron_update {
           if let Some(index) = recurrence_table.get(&neuron_id) {
             // if we're told to update state, and if the neuron is recurrent, update the persistence array
@@ -85,6 +83,7 @@ pub fn evaluate(
         // when j flag is set, do not include weight of last neuron link as jump forward has a different weight
         if !j || gene_index != range.start {
           // otherwise use regular weight of connection in stack
+          let weight = numeric_type.naive_conversion(*weight);
           computations.push(quote! {
             let #result_id = #result_id * #weight; // apply weighting
           });
@@ -103,6 +102,7 @@ pub fn evaluate(
         // neuron with id of the jumper, and push the result multiplied by the jumpers
         // weight onto the stack
         let weight = network.genome[gene_index].weight;
+        let weight = numeric_type.naive_conversion(weight);
         let id = network.genome[gene_index].id;
         let subnetwork_range = network
           .get_subnetwork_index(id)
@@ -119,6 +119,7 @@ pub fn evaluate(
           computations,
           latest_output,
           recurrence_table,
+          numeric_type
         );
 
         // the recursive call to evaluate modified latest_output, the result id is latest_output - 1
@@ -148,7 +149,7 @@ pub fn evaluate(
         // however it lets us keep the same process consistent & LLVM will optimize it out I'm p sure
         let result_id = format_ident!("c{}", latest_output);
         *latest_output += 1;
-        let weight = gene.weight;
+        let weight = numeric_type.naive_conversion(gene.weight);
 
         computations.push(quote! {
           let #result_id = #weight * self.persistence[#persistence_index]; // access persistence, apply weighting
@@ -161,7 +162,7 @@ pub fn evaluate(
         // weight onto the stack
 
         let gene = &network.genome[gene_index];
-        let bias = gene.weight;
+        let bias = numeric_type.naive_conversion(gene.weight);
 
         // this is more junk rustc will const-propagate / LLVM will optimize (`let c137 = -0.02302234`);
         // NOTE: maybe it could be helpful if we declare like `const c137: #NUMERIC_TYPE = -0.02302234;`?
