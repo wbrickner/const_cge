@@ -93,7 +93,13 @@ Review [the documentation](https://docs.rs/const_cge) for additional methods rel
 # `numeric_type`
 
 - You often don't need the precision of `f64`, and `f64` is in general larger and slower than `f32`. `f64` will behave __identically__ to your CGE file, and so it is the default behavior.
-- You can perform (lossy) parameter 'downcasting' on your network, causing all parameters and operations to use your requested type: `#[network("net.cge", numeric_type = f32)`.
+- You can perform (lossy) parameter 'downcasting' on your network, causing all parameters and operations to use your requested type: 
+
+```rust
+#[network("net.cge", numeric_type = f32)
+struct SmallerFaster;
+```
+
 - Only `f64` and `f32` are supported for now. Maybe I will add support for integer / fixed-precision in the future.
 
 # Design Goals & Drawbacks
