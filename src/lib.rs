@@ -8,8 +8,6 @@ mod implementations;
 mod macro_core;
 #[macro_use] mod utils;
 
-#[cfg(test)] mod tests;
-
 /// Adds the required fields and functions for executing a network loaded from a CGE file.
 /// - If your network has recurrent     architecture, it only works on unit structs (no fields).
 /// - If your network has non-recurrent architecture, it works on any struct or enum.

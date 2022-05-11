@@ -6,9 +6,6 @@ edition = "2021"
 [lib]
 proc-macro = true
 
-[dev-dependencies]
-trybuild = "1.0.61"
-
 [dependencies]
 cge = { git = "https://github.com/pengowen123/cge" }
 proc-macro2 = "1.0.38"
