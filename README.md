@@ -25,11 +25,11 @@ Check out [`eant2`](todo) to see how to train a neural network compatible with `
 # Simple Example
 
 ## Network
-The `network` macro statically generates all of the fields and functions required to evaluate our network:
+The `network` macro generates all of the fields and functions required to evaluate our network.
 
 ```rust
-/// Use sensor data to control the limbs of a robot
-#[network("nets/walk.cge")]
+/// Use sensor data to control the limbs of a robot (using f32 only).
+#[network("nets/walk.cge", numeric_type = f32)]
 struct Walk;
 
 let mut walk = Walk::default();
@@ -72,7 +72,7 @@ d.evaluate(&input, &mut output);
 
 Recurrent state stores the previous value of a neuron for use in the next evaluation (sent backwards in the network).
 
-The state inside a recurrent network is represented as `[f64; N]`, and is updated on every evaluation. As mentioned before, it is made only as large as it needs to be.
+The state inside a recurrent network is represented as either `[f64; N]` or `[f32; N]`, and is updated on every evaluation. As mentioned before, it is made only as large as it needs to be.
 
 If you like, you can read this state, modify it, restore it later, etc.
 
@@ -89,6 +89,12 @@ let state = d.recurrent_state();
 ```
 
 Review [the documentation](https://docs.rs/const_cge) for additional methods relating to recurrent state.
+
+# `numeric_type`
+
+- You often don't need the precision of `f64`, and `f64` is in general larger and slower than `f32`. `f64` will behave __identically__ to your CGE file, and so it is the default behavior.
+- You can perform (lossy) parameter 'downcasting' on your network, causing all parameters and operations to use your requested type: `#[network("net.cge", numeric_type = f32)`.
+- Only `f64` and `f32` are supported for now. Maybe I will add support for integer / fixed-precision in the future.
 
 # Design Goals & Drawbacks
 
