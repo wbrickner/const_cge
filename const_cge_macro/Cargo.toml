@@ -21,10 +21,10 @@ categories = [
 proc-macro = true
 
 [dependencies]
-cge = { git = "https://github.com/pengowen123/cge" }
-proc-macro2 = "1.0.38"                           
-quote = "1.0.18"                                 
-syn = { version = "1.0.93", features = ["full"] }
+cge = { git = "https://github.com/pengowen123/cge", rev = "be53462" }
+proc-macro2 = "1"                           
+quote = "1"                                 
+syn = { version = "1", features = ["full"] }
 
 [badges]
 maintenence = { status = "passively-maintained" }

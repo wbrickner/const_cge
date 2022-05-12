@@ -23,8 +23,8 @@ const_cge_macro = { path = "./const_cge_macro/" }
 const_cge_activations = { path = "./const_cge_activations/" }
 
 [dev-dependencies]
-cge = { git = "https://github.com/pengowen123/cge" } # used in tests: { assert!(static == dynamic) for evaluation results }
-proptest = "1.0.0"
+cge = { git = "https://github.com/pengowen123/cge", rev = "be53462" } # used in tests: { assert!(static == dynamic) for evaluation results }
+proptest = "1"
 
 [badges]
 maintenence = { status = "passively-maintained" }
