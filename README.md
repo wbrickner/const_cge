@@ -1,10 +1,10 @@
 # `const_cge`: Neural Network Compiler
 
-## Disclaimer: crate slightly broken for now
-
-![Cover graphic depicts transformation of a neural network to a rust function](./images/cover.png)
+![Cover graphic for the ecosystem of crates including EANT2 and const_cge](https://github.com/wbrickner/const_cge/raw/master/images/ecosystem.png)
 
 # What do?
+
+![Illustration depicts transformation of a neural network into a rust function](https://github.com/wbrickner/const_cge/raw/master/images/transform.png)
 
 `const_cge` performs a symbolic evaluation of your neural network at compile time, producing efficient rust code with identical behavior.
 
@@ -13,7 +13,8 @@ LLVM is able to perform more advanced optimizations, like instruction ellision,
 pipeline-aware reordering, SIMD vectorization, register + stack size minimization, and more.
 
 The generated rust code: 
-- will never allocate, panic, or rely on `std` constructs
+- will never allocate, panic, loop, or rely on `std` constructs
+- has perfect determinism
 - has input and output dimensions which are statically declared
 - has internal data dependencies that are statically analyzable
 - utilizes an exactly minimal recurrent state array, or none at all (only pay for what you use)
@@ -105,7 +106,7 @@ struct SmallerFaster;
 # Design Goals & Drawbacks
 
 - You can accomplish quite a lot with "small" networks, especially for control tasks. `const_cge` is not intended for use in "deep learning" tasks (language modeling, etc).
-- Tradeoffs that favor embedded use cases (robotics, $0.05 USD microcontrollers)
+- Tradeoffs that enable embedded use cases (robotics, 5¢ microcontrollers)
 - Lots of individual `const_cge` networks in the same binary may end up being _larger_ or _slower_ than a runtime evaluation approach.
 This will depend on the target machine and the networks you're evaluating. If you really care, measure. This library should cover the common use case perfectly.
 

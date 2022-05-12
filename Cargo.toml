@@ -16,6 +16,7 @@ categories = [
   "science::robotics",
   "computer-vision"
 ]
+build = "build.rs"
 
 [dependencies]
 const_cge_macro = { path = "./const_cge_macro/" }

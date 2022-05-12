@@ -102,7 +102,7 @@ mod figure_5_3_paper {
   use proptest::{
     prelude::*,
     collection::vec,
-    array::{uniform5, UniformArrayStrategy}
+    array::uniform5
   };
 
   /// Static and dynamic constructions of the network should
@@ -120,7 +120,7 @@ mod figure_5_3_paper {
       .expect("Failed to dynamically load CGE file");
 
     // gimme 50,000 `[f64; N]`; where each f64 falls in [-1, +1]
-    proptest!(ProptestConfig::with_cases(50_000), |(input_vector in UniformArrayStrategy::<_, [f64; TestNet::INPUT_COUNT]>::new(-1.0f64..1.0f64))| {
+    proptest!(ProptestConfig::with_cases(50_000), |(input_vector in uniform5(-1.0f64..1.0f64))| {
       let mut net = TestNet::default();
       let mut runtime = runtime.clone();
 
