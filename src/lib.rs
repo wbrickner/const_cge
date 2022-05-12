@@ -1,16 +1,4 @@
-pub use const_cge_activations::*;
-pub use const_cge_macro::*;
+pub use const_cge_activations::*; // make `activations` available to codegen'd functions
+pub use const_cge_macro::*;       // make the macros available to users
 
-#[cfg(test)]
-mod test {
-  use crate as const_cge;
-  use const_cge::*;
-
-  #[test]
-  fn it_works() {
-    #[network("./test_inputs/test_net.cge", numeric_type = f32)]
-    struct MyNet;
-
-    let net = MyNet::default();
-  }
-}
+#[cfg(test)] mod tests;

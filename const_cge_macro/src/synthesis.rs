@@ -43,6 +43,7 @@ pub fn synthesize(invocation: &Invocation) -> Synthesis {
 
   // literally a list of floating point operations as rust code
   let mut computations_list = vec![];
+  let mut computations_end = vec![];
   let recurrence_table = recurrence::identify_recurrence(&network);
 
   let size = network.size;
@@ -60,6 +61,7 @@ pub fn synthesize(invocation: &Invocation) -> Synthesis {
     false, 
     true, 
     &mut computations_list, 
+    &mut computations_end, 
     &mut 0, 
     &recurrence_table,
     invocation.config.numeric_type,
@@ -178,6 +180,7 @@ pub fn synthesize(invocation: &Invocation) -> Synthesis {
       #[doc = #numeric_comment]
       pub fn evaluate(#self_argument inputs: &[#numeric_token; #input_count], outputs: &mut [#numeric_token; #output_count]) {
         #(#computations_list)*
+        #(#computations_end)*
       }
     }
   };

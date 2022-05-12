@@ -13,6 +13,8 @@ pub fn evaluate(
   j: bool,                                  // I do not understand this flag. You caught me.
   root: bool,                               // Is this the 'root' invocation of this function? used for writing into the outputs array.
   computations: &mut Vec<TokenStream>,      // Computations tracks the actual expressions & assignments (e.g. `let c2 = (w0 * c0) + (w1 * c1);`)
+  computations_end: &mut Vec<TokenStream>,  // Stuff to tack onto the end.
+
   latest_output: &mut u64,                  // Counts upwards and is used for making variable names
   recurrence_table: &HashMap<usize, usize>, // A complete table mapping all neuron IDs to the index in the "persistence array"
                                             // - the persistence array is a minimal set of floats that are needed to support the recurrent behavior of the network
@@ -26,9 +28,7 @@ pub fn evaluate(
   // Iterate backwards over the specified slice
   let mut gene_index = range.end;
   while gene_index >= range.start {
-    let variant = network.genome[gene_index].variant;
-
-    match variant {
+    match network.genome[gene_index].variant {
       GeneExtras::Input(_) => {
         // If the gene is an input, push its value multiplied by the inputs weight onto
         // the stack
@@ -43,13 +43,13 @@ pub fn evaluate(
           let #result_id = #input_weighting * inputs[#input_id]; // weight input ##input_id by #input_weighting
         });
         stack.push(result_id);
-      }
-      GeneExtras::Neuron(_, _) => {
+      },
+      GeneExtras::Neuron(_, _, _) => {
         // If the gene is a neuron, pop a number (the neurons input count) of inputs
         // off the stack, and push the transfer function applied to the sum of these
         // inputs multiplied by the neurons weight onto the stack
         // TODO: why are you not using this weight?
-        let (weight, neuron_id, _, inputs) =
+        let (weight, neuron_id, _current_value, _, inputs) =
           network.genome[gene_index].ref_mut_neuron().unwrap();
 
         // commit to a result ID
@@ -62,7 +62,7 @@ pub fn evaluate(
           .expect("A neuron did not receive enough inputs");
 
         computations.push(quote! {
-          let #result_id = #(#inputs) + *;            // sum the inputs for neuron ##neuron_id
+          let #result_id = #(#inputs)+*;            // sum the inputs for neuron ##neuron_id
           let #result_id = #activation(#result_id); // apply activation function
         });
 
@@ -72,10 +72,13 @@ pub fn evaluate(
 
         if neuron_update {
           if let Some(index) = recurrence_table.get(&neuron_id) {
-            // if we're told to update state, and if the neuron is recurrent, update the persistence array
-            computations.push(quote! {
+            // if we're told to update state, and if the neuron is recurrent, update the persistence array (but delay until the end)
+            computations_end.push(quote! {
               self.persistence[#index] = #result_id;
             });
+            // computations.push(quote! {
+            //   self.persistence[#index] = #result_id;
+            // });
           }
         }
 
@@ -90,7 +93,7 @@ pub fn evaluate(
         }
 
         stack.push(result_id);
-      }
+      },
       GeneExtras::Forward => {
         // This is inefficient because it can run the neuron evaluation code multiple
         // times
@@ -117,6 +120,7 @@ pub fn evaluate(
           true,
           false,
           computations,
+          computations_end,
           latest_output,
           recurrence_table,
           numeric_type,
@@ -131,7 +135,7 @@ pub fn evaluate(
         computations.push(quote! { let #weighted_result_id = #subnetwork_result_id * #weight; });
 
         stack.push(weighted_result_id);
-      }
+      },
       GeneExtras::Recurrent => {
         // If the gene is a recurrent jumper, push the previous value of the neuron
         // with the id of the jumper multiplied by the jumpers weight onto the stack
@@ -157,7 +161,7 @@ pub fn evaluate(
         });
 
         stack.push(result_id);
-      }
+      },
       GeneExtras::Bias => {
         // If the gene is a bias input, push the bias constant multiplied by the genes
         // weight onto the stack
