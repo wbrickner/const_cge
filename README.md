@@ -21,7 +21,7 @@ The generated rust code:
 - statically captures properties of your neural network in the type system
 - incurs zero overhead cost at runtime
 
-Check out [`eant2`](todo) to see how to train a neural network compatible with `const_cge`.
+Check out [`eant2`](https://github.com/pengowen123/eant2) to see how to train a neural network compatible with `const_cge`.
 
 # Simple Example
 

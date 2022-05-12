@@ -48,7 +48,6 @@ pub fn evaluate(
         // If the gene is a neuron, pop a number (the neurons input count) of inputs
         // off the stack, and push the transfer function applied to the sum of these
         // inputs multiplied by the neurons weight onto the stack
-        // TODO: why are you not using this weight?
         let (weight, neuron_id, _current_value, _, inputs) =
           network.genome[gene_index].ref_mut_neuron().unwrap();
 
@@ -66,10 +65,6 @@ pub fn evaluate(
           let #result_id = #activation(#result_id); // apply activation function
         });
 
-        // TODO: figure out this mess.  It may be the case that we should prepare the result only as a temporary value...
-        // TODO: this may the hint that this neuron is recurrent, or something. IDK.
-        // UPDATE: I think it is not about recurrence, and we may not need this anymore.
-
         if neuron_update {
           if let Some(index) = recurrence_table.get(&neuron_id) {
             // if we're told to update state, and if the neuron is recurrent, update the persistence array (but delay until the end)
@@ -79,7 +74,6 @@ pub fn evaluate(
           }
         }
 
-        // todo: I think this is wrong actually
         // when j flag is set, do not include weight of last neuron link as jump forward has a different weight
         if !j || gene_index != range.start {
           // otherwise use regular weight of connection in stack
@@ -190,7 +184,6 @@ pub fn evaluate(
 
   // now the stack contains the identifiers (variable names) of the result of the network.
   // - we must write them into output buffer rather than return them
-  // TODO: this may actually be in reverse-order! idk! test and see!
   if root {
     let output_count = stack.data.len();
 
