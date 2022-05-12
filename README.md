@@ -1,10 +1,10 @@
 # `const_cge`: Neural Network Compiler
 
-![Cover graphic for the ecosystem of crates including EANT2 and const_cge](https://github.com/wbrickner/const_cge/raw/master/images/ecosystem.png)
+![Cover graphic for the ecosystem of crates including EANT2 and const_cge](https://github.com/wbrickner/const_cge/raw/main/images/ecosystem.png)
 
 # What do?
 
-![Illustration depicts transformation of a neural network into a rust function](https://github.com/wbrickner/const_cge/raw/master/images/transform.png)
+![Illustration depicts transformation of a neural network into a rust function](https://github.com/wbrickner/const_cge/raw/main/images/transform.png)
 
 `const_cge` performs a symbolic evaluation of your neural network at compile time, producing efficient rust code with identical behavior.
 
