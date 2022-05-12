@@ -30,6 +30,7 @@ pub fn core(invocation: Invocation) -> TokenStream {
     recurrency_count,
     documentation,
     persistence_field,
+    associated_constants,
     persistence_methods,
     evaluate_function
   } = synthesize(&invocation);
@@ -93,6 +94,7 @@ pub fn core(invocation: Invocation) -> TokenStream {
     #item
 
     impl #name {
+      #associated_constants
       #persistence_methods
       #evaluate_function
     }

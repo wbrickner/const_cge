@@ -23,7 +23,7 @@ pub fn evaluate(
   numeric_type: NumericType,                // The _target_ numeric type to be used in the generated code.
   activation:   TokenStream                 // Path to optimized activation function (e.g. `const_cge::activations::f32::relu`)
 ) -> Option<usize> {
-  let mut stack = Stack::new();                // stack tracks the /names/ of past results (e.g. `let c2`)
+  let mut stack = Stack::new(); // stack tracks the /names/ of past results (e.g. `let c2`)
   
   // Iterate backwards over the specified slice
   let mut gene_index = range.end;
@@ -59,7 +59,7 @@ pub fn evaluate(
         // sum the most recently visited N inputs
         let inputs = stack
           .pop(*inputs)
-          .expect("A neuron did not receive enough inputs");
+          .unwrap_or_else(|| panic!("Corrupt CGE: neuron (ID {}) did not receive enough inputs (expected {}, but only received {})", neuron_id, inputs, stack.data.len()));
 
         computations.push(quote! {
           let #result_id = #(#inputs)+*;            // sum the inputs for neuron ##neuron_id
@@ -76,9 +76,6 @@ pub fn evaluate(
             computations_end.push(quote! {
               self.persistence[#index] = #result_id;
             });
-            // computations.push(quote! {
-            //   self.persistence[#index] = #result_id;
-            // });
           }
         }
 
@@ -87,12 +84,14 @@ pub fn evaluate(
         if !j || gene_index != range.start {
           // otherwise use regular weight of connection in stack
           let weight = numeric_type.naive_conversion(*weight);
+          let new_result_id = format_ident!("c{}", latest_output); *latest_output += 1;
           computations.push(quote! {
-            let #result_id = #result_id * #weight; // apply weighting
+            let #new_result_id = #result_id * #weight; // apply weighting
           });
+          stack.push(new_result_id);
+        } else {
+          stack.push(result_id);
         }
-
-        stack.push(result_id);
       },
       GeneExtras::Forward => {
         // This is inefficient because it can run the neuron evaluation code multiple
@@ -104,12 +103,11 @@ pub fn evaluate(
         // If the gene is a forward jumper, evaluate the subnetwork starting at the
         // neuron with id of the jumper, and push the result multiplied by the jumpers
         // weight onto the stack
-        let weight = network.genome[gene_index].weight;
-        let weight = numeric_type.naive_conversion(weight);
+        let weight = numeric_type.naive_conversion(network.genome[gene_index].weight);
         let id = network.genome[gene_index].id;
         let subnetwork_range = network
           .get_subnetwork_index(id)
-          .expect("Found forward connection with invalid neuron id");
+          .unwrap_or_else(|| panic!("Corrupt CGE: forward connection (gene {}) had an invalid neuron ID ({})", gene_index, id));
 
         // set j flag to true so the neuron does not include it's regular link weight
         // otherwise the values will be off by whatever factor the neuron weight is
@@ -132,7 +130,9 @@ pub fn evaluate(
         let subnetwork_result_id = format_ident!("c{}", *latest_output - 1);
         let weighted_result_id = format_ident!("c{}", latest_output);
         *latest_output += 1;
-        computations.push(quote! { let #weighted_result_id = #subnetwork_result_id * #weight; });
+        computations.push(quote! {
+          let #weighted_result_id = #subnetwork_result_id * #weight;
+        });
 
         stack.push(weighted_result_id);
       },
@@ -142,7 +142,7 @@ pub fn evaluate(
         let gene = &network.genome[gene_index];
         let persistence_index = recurrence_table
           .get(&gene.id)
-          .expect("Corrupt CGE: encountered a recurrent connection with an invalid neuron ID");
+          .unwrap_or_else(|| panic!("Corrupt CGE: encountered a recurrent connection (gene {}) with an invalid neuron ID ({})", gene_index, gene.id));
 
         // assert that `network` agrees that this neuron exists / this ID is valid
         assert!(

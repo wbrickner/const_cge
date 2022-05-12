@@ -6,11 +6,12 @@ use crate::{recurrence, evaluator, macro_core::Invocation, numeric_type::Numeric
 /// - Number of recurrent neural states we must retain (0 implies nonrecurrent architecture)
 /// - A bundle of rust code to be interpolated in the final step
 pub struct Synthesis {
-  pub recurrency_count:    usize,
-  pub documentation:       TokenStream,
-  pub persistence_field:   TokenStream,
-  pub persistence_methods: TokenStream,
-  pub evaluate_function:   TokenStream,
+  pub recurrency_count:     usize,
+  pub documentation:        TokenStream,
+  pub persistence_field:    TokenStream,
+  pub associated_constants: TokenStream,
+  pub persistence_methods:  TokenStream,
+  pub evaluate_function:    TokenStream,
 }
 
 /// Load network
@@ -54,6 +55,8 @@ pub fn synthesize(invocation: &Invocation) -> Synthesis {
   //   reducing code size (and perhaps compilation time).
   let activation_fn_path = activation_path(activation, invocation.config.numeric_type);
 
+  let recurrency_count = recurrence_table.len();
+  let input_count = network.genome.iter().filter(|g| matches!(g.variant, GeneExtras::Input(_))).count();
   let output_count = evaluator::evaluate(
     &mut network, 
     0..size,
@@ -68,8 +71,6 @@ pub fn synthesize(invocation: &Invocation) -> Synthesis {
     activation_fn_path
   ).expect("Corrupt CGE: network appears to have no outputs");
 
-  let recurrency_count = recurrence_table.len();
-  let input_count = network.genome.iter().filter(|g| matches!(g.variant, GeneExtras::Input(_))).count();
   let numeric_token = invocation.config.numeric_type.token();
   let numeric_bytes = invocation.config.numeric_type.size_of();
 
@@ -165,6 +166,19 @@ pub fn synthesize(invocation: &Invocation) -> Synthesis {
     }
   };
 
+  // make these numbers available to users
+  let associated_constants = quote! {
+    /// The number of inputs to the network. Provided for convenience (const).
+    pub const INPUT_COUNT:     usize = #input_count;
+
+    /// The number of outputs from the network. Provided for convenience (const).
+    pub const OUTPUT_COUNT:    usize = #output_count;
+
+    /// The size of internal state of the network (number of numeric elements). Provided for convenience (const).
+    /// - NOTE: This constant is _always available_, and will be zero for non-recurrent networks.
+    pub const PERSISTENT_SIZE: usize = #recurrency_count;
+  };
+  
   let evaluate_function = {
     // should the `evaluate` function get a `&mut self`, or can it be a static function?
     let self_argument = if recurrency_count == 0 { quote!() } else { quote!(&mut self,) };
@@ -189,6 +203,7 @@ pub fn synthesize(invocation: &Invocation) -> Synthesis {
     recurrency_count,
     documentation,
     persistence_field,
+    associated_constants,
     persistence_methods,
     evaluate_function,
   }
