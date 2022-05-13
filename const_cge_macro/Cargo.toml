@@ -1,6 +1,6 @@
 [package]
 name = "const_cge_macro"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Will Brickner <wgbrickner@gmail.com>"]
 description = "Macro implementation of const_cge"
