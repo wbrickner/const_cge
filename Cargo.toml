@@ -16,15 +16,11 @@ categories = [
   "science::robotics",
   "computer-vision"
 ]
-build = "build.rs"
 
 [dependencies]
-const_cge_macro = { path = "./const_cge_macro/" }
-const_cge_activations = { path = "./const_cge_activations/" }
+const_cge_macro = "0.1.0"
+const_cge_activations = "0.1.0"
 
 [dev-dependencies]
-cge = { git = "https://github.com/pengowen123/cge", rev = "be53462" } # used in tests: { assert!(static == dynamic) for evaluation results }
-proptest = "1"
-
-[badges]
-maintenence = { status = "passively-maintained" }
+cge = "0.0.1"  # used in tests, to verify codegen matches the `cge` evaluation
+proptest = "1" # used in tests, to verify codegen matches the `cge` evaluation

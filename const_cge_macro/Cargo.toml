@@ -21,7 +21,7 @@ categories = [
 proc-macro = true
 
 [dependencies]
-cge = { git = "https://github.com/pengowen123/cge", rev = "be53462" }
+cge = "0.0.1"                               
 proc-macro2 = "1"                           
 quote = "1"                                 
 syn = { version = "1", features = ["full"] }
