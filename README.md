@@ -46,7 +46,8 @@ It is sometimes a problem if a network can squirel away information about its pa
 You can use `nonrecurrent`, which will halt compilation if the imported network contains any recurrency:
 
 ```rust
-/// Predict which lighting color would best complement the current sunlight color
+/// Predict which lighting color would best 
+/// complement the current sunlight color
 #[nonrecurrent("nets/color.cge")]
 struct Color;
 
@@ -61,7 +62,8 @@ Some tasks are best solved using recurrent architectures, and the inclusion of a
 You can use `recurrent`, which will halt compilation if the imported network contains no recurrency:
 
 ```rust
-/// Detect if our device has just been dropped and is currently falling through the air
+/// Detect if our device has just been dropped 
+/// and is currently falling through the air
 #[recurrent("nets/drop.cge")]
 struct Dropped;
 
@@ -73,7 +75,7 @@ d.evaluate(&input, &mut output);
 
 Recurrent state stores the previous value of a neuron for use in the next evaluation (sent backwards in the network).
 
-The state inside a recurrent network is represented as either `[f64; N]` or `[f32; N]`, and is updated on every evaluation. As mentioned before, it is made only as large as it needs to be.
+The state inside a recurrent network is represented as either `[f64; N]` (or `[f32; N]`), and is updated on every evaluation. As mentioned before, it is made only as large as it needs to be.
 
 If you like, you can read this state, modify it, restore it later, etc.
 
@@ -82,26 +84,31 @@ If you like, you can read this state, modify it, restore it later, etc.
 #[recurrent("nets/denoise.cge")]
 struct Denoise;
 
-// initially-zero recurrent state
-let mut a = Denoise::default();
+// I want a specific recurrent state, 
+// not the `::default()` initially-zero recurrent state.
+let mut d = Denoise::with_recurrent_state(&saved_state);
 
-// some evaluations later, read internal state, send it to a server, etc.
+// Some evaluations later, read internal state
 let state = d.recurrent_state();
-```
 
-Review [the documentation](https://docs.rs/const_cge) for additional methods relating to recurrent state.
+// Or modify internal state
+do_something_to_state(d.recurrent_state_mut());
+
+// Or set custom state after construction
+d.set_recurrent_state(&saved_state);
+```
 
 # `numeric_type`
 
-- You often don't need the precision of `f64`, and `f64` is in general larger and slower than `f32`. `f64` will behave __identically__ to your CGE file, and so it is the default behavior.
+- You often don't need the precision of `f64`, and `f64` is in general larger and slower than `f32`. Using `f64` will behave __identically__ to your CGE file, and so it is the default behavior.
 - You can perform (lossy) parameter 'downcasting' on your network, causing all parameters and operations to use your requested type: 
 
 ```rust
-#[network("net.cge", numeric_type = f32)
+#[network("net.cge", numeric_type = f32)]
 struct SmallerFaster;
 ```
 
-- Only `f64` and `f32` are supported for now. Maybe I will add support for integer / fixed-precision in the future.
+- Only `f64` and `f32` are supported for now. Maybe I will add support for `f16` / integer / fixed-precision in the future.
 
 # Design Goals & Drawbacks
 
@@ -111,7 +118,6 @@ struct SmallerFaster;
 This will depend on the target machine and the networks you're evaluating. If you really care, measure. This library should cover the common use case perfectly.
 
 # [`MIT License`](https://opensource.org/licenses/MIT)
-
 
 ```text
 Copyright © 2022 Will Brickner

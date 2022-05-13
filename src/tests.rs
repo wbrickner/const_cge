@@ -27,7 +27,7 @@ mod test_net {
   use proptest::{
     prelude::*,
     collection::vec,
-    array::{uniform5, UniformArrayStrategy}
+    array::uniform2
   };
 
   /// Static and dynamic constructions of the network should
@@ -44,8 +44,8 @@ mod test_net {
     let runtime = Network::load_from_file("./test_inputs/test_net.cge")
       .expect("Failed to dynamically load CGE file");
 
-    // gimme 50,000 `[f64; N]`; where each f64 falls in [-1, +1]
-    proptest!(ProptestConfig::with_cases(50_000), |(input_vector in UniformArrayStrategy::<_, [f64; 5]>::new(-1.0f64..1.0f64))| {
+    // gimme 50,000 `[f64; 2]`; where each f64 falls in [-1, +1]
+    proptest!(ProptestConfig::with_cases(50_000), |(input_vector in uniform2(-1.0f64..1.0f64))| {
       let mut net = TestNet::default();
       let mut runtime = runtime.clone();
 
@@ -73,8 +73,8 @@ mod test_net {
     let runtime = Network::load_from_file("./test_inputs/test_net.cge")
       .expect("Failed to dynamically load CGE file");
 
-    // gimme 50 `vec<[f64; 5]>`, each 5k elements long, where each f64 falls in [-1, +1]
-    proptest!(ProptestConfig::with_cases(50), |(input_vectors in vec(uniform5(-1.0f64..1.0f64), 5000..=5000))| {
+    // gimme 50 `vec<[f64; 2]>`, each 5k elements long, where each f64 falls in [-1, +1]
+    proptest!(ProptestConfig::with_cases(50), |(input_vectors in vec(uniform2(-1.0f64..1.0f64), 5000..=5000))| {
       let mut net = TestNet::default();  // start them both in the same state
       let mut runtime = runtime.clone(); // start them both in the same state
 
@@ -102,7 +102,7 @@ mod figure_5_3_paper {
   use proptest::{
     prelude::*,
     collection::vec,
-    array::uniform5
+    array::uniform2
   };
 
   /// Static and dynamic constructions of the network should
@@ -113,19 +113,19 @@ mod figure_5_3_paper {
   fn recurrent_memorywipe_50k_trials() {
     // statically create network
     #[network("./test_inputs/fig_5_3_paper.cge", numeric_type = f64)]
-    struct TestNet;
+    struct FigureNet;
 
     // dynamically load the exact same network
     let runtime = Network::load_from_file("./test_inputs/fig_5_3_paper.cge")
       .expect("Failed to dynamically load CGE file");
 
-    // gimme 50,000 `[f64; N]`; where each f64 falls in [-1, +1]
-    proptest!(ProptestConfig::with_cases(50_000), |(input_vector in uniform5(-1.0f64..1.0f64))| {
-      let mut net = TestNet::default();
+    // gimme 50,000 `[f64; 2]`; where each f64 falls in [-1, +1]
+    proptest!(ProptestConfig::with_cases(50_000), |(input_vector in uniform2(-1.0f64..1.0f64))| {
+      let mut net = FigureNet::default();
       let mut runtime = runtime.clone();
 
       let static_outputs = {
-        let mut outputs = [0.0; TestNet::OUTPUT_COUNT];
+        let mut outputs = [0.0; FigureNet::OUTPUT_COUNT];
         net.evaluate(&input_vector, &mut outputs);
         outputs.to_vec()
       };
@@ -148,8 +148,8 @@ mod figure_5_3_paper {
     let runtime = Network::load_from_file("./test_inputs/fig_5_3_paper.cge")
       .expect("Failed to dynamically load CGE file");
 
-    // gimme 50 `vec<[f64; 5]>`, each 5k elements long, where each f64 falls in [-1, +1]
-    proptest!(ProptestConfig::with_cases(50), |(input_vectors in vec(uniform5(-1.0f64..1.0f64), 5000..=5000))| {
+    // gimme 50 `vec<[f64; 2]>`, each 5k elements long, where each f64 falls in [-1, +1]
+    proptest!(ProptestConfig::with_cases(50), |(input_vectors in vec(uniform2(-1.0f64..1.0f64), 5000..=5000))| {
       let mut net = TestNet::default();  // start them both in the same state
       let mut runtime = runtime.clone(); // start them both in the same state
 
@@ -177,7 +177,7 @@ mod figure_5_3_paper_plus_one {
   use proptest::{
     prelude::*,
     collection::vec,
-    array::{uniform5, UniformArrayStrategy}
+    array::uniform2
   };
 
   /// Static and dynamic constructions of the network should
@@ -194,8 +194,8 @@ mod figure_5_3_paper_plus_one {
     let runtime = Network::load_from_file("./test_inputs/fig_5_3_paper_plus_one.cge")
       .expect("Failed to dynamically load CGE file");
 
-    // gimme 50,000 `[f64; N]`; where each f64 falls in [-1, +1]
-    proptest!(ProptestConfig::with_cases(50_000), |(input_vector in UniformArrayStrategy::<_, [f64; 5]>::new(-1.0f64..1.0f64))| {
+    // gimme 50,000 `[f64; 2]`; where each f64 falls in [-1, +1]
+    proptest!(ProptestConfig::with_cases(50_000), |(input_vector in uniform2(-1.0f64..1.0f64))| {
       let mut net = TestNet::default();
       let mut runtime = runtime.clone();
 
@@ -223,8 +223,8 @@ mod figure_5_3_paper_plus_one {
     let runtime = Network::load_from_file("./test_inputs/fig_5_3_paper_plus_one.cge")
       .expect("Failed to dynamically load CGE file");
 
-    // gimme 50 `vec<[f64; 5]>`, each 5k elements long, where each f64 falls in [-1, +1]
-    proptest!(ProptestConfig::with_cases(50), |(input_vectors in vec(uniform5(-1.0f64..1.0f64), 5000..=5000))| {
+    // gimme 50 `vec<[f64; 2]>`, each 5k elements long, where each f64 falls in [-1, +1]
+    proptest!(ProptestConfig::with_cases(50), |(input_vectors in vec(uniform2(-1.0f64..1.0f64), 5000..=5000))| {
       let mut net = TestNet::default();  // start them both in the same state
       let mut runtime = runtime.clone(); // start them both in the same state
 

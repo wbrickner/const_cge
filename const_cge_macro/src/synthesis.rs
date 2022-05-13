@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use cge::{Network, gene::GeneExtras, Activation};
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -56,7 +57,22 @@ pub fn synthesize(invocation: &Invocation) -> Synthesis {
   let activation_fn_path = activation_path(activation, invocation.config.numeric_type);
 
   let recurrency_count = recurrence_table.len();
-  let input_count = network.genome.iter().filter(|g| matches!(g.variant, GeneExtras::Input(_))).count();
+  let input_count = {
+    // The number of inputs to a network is the number of unique input IDs
+    // found among all Input genes in the genome.
+    
+    let mut input_ids = HashSet::new();
+    network
+      .genome
+      .iter()
+      .filter_map(|g| match g.variant {
+        GeneExtras::Input(_) => Some(g.id),
+        _ => None
+      })
+      .for_each(|id| { input_ids.insert(id); });
+    
+    input_ids.len()
+  };
   let output_count = evaluator::evaluate(
     &mut network, 
     0..size,

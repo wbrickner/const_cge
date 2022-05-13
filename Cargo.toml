@@ -19,7 +19,8 @@ categories = [
 ]
 
 [dependencies]
-const_cge_macro = "0.1.0"
+# const_cge_macro = "0.1.0"
+const_cge_macro = { path = "./const_cge_macro" }
 const_cge_activations = "0.1.0"
 
 [dev-dependencies]
