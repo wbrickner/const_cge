@@ -8,6 +8,7 @@ repository = "https://github.com/wbrickner/const_cge"
 documentation = "https://docs.rs/const_cge"
 readme = "README.md"
 license = "MIT"
+exclude = ["images/"]
 keywords = ["cge", "neural", "machine-learning", "embedded", "no_std"]
 categories = [
   "embedded",
