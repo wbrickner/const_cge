@@ -17,5 +17,16 @@ categories = [
   "computer-vision"
 ]
 
-[badges]
-maintenence = { status = "passively-maintained" }
+[dependencies]
+libm      = { version = "0.2.2",  optional = true }
+micromath = { version = "2",      optional = true }
+
+[features]
+default   = ["libm"]
+std       = []
+
+# enable libm dependency
+libm      = ["dep:libm"]
+
+# enable micromath + libm dependency (still need libm for tanh function lmfao)
+micromath = ["dep:micromath", "dep:libm"]
