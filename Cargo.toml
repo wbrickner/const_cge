@@ -19,17 +19,16 @@ categories = [
 ]
 
 [dependencies]
-const_cge_macro = "0.1.1"      
-# const_cge_activations = "0.1.0"
-const_cge_activations = { path = "./const_cge_activations/", default-features = false }
-libm = "0.2.2"
+const_cge_macro = { path = "./const_cge_macro/" }
+libm            = { version = "0.2.2",  optional = true }
+micromath       = { version = "2",      optional = true }
 
 [dev-dependencies]
-cge = "0.0.1"  # used in tests, to verify codegen matches the `cge` evaluation
-proptest = "1" # used in tests, to verify codegen matches the `cge` evaluation
+cge      = "0.0.1"  # used in tests, to verify codegen matches the `cge` evaluation
+proptest = "1"      # used in tests, to verify codegen matches the `cge` evaluation
 
 [features]
 default   = ["libm"]
-std       = ["const_cge_activations/std"]       # enable std float stuff inside cge_activations
-libm      = ["const_cge_activations/libm"]      # enable std float stuff inside cge_activations
-micromath = ["const_cge_activations/micromath"] # enable std float stuff inside cge_activations
+std       = []
+libm      = ["dep:libm"]                  # enable libm dependency
+micromath = ["dep:micromath", "dep:libm"] # enable micromath + libm dependency

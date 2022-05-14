@@ -1,3 +1,31 @@
+mod netcrate_test {
+  use crate as const_cge;
+  use const_cge::*;
+
+  // #[macro_use]
+  mod netcrate_example {
+    use crate as const_cge;
+    const_cge::netcrate!(testnet = "./test_inputs/test_net.cge");
+  }
+
+  mod netcrate_example_2 {
+    use crate as const_cge;
+    const_cge::netcrate!(testnet2 = "./test_inputs/test_net.cge");
+  }
+
+  #[test]
+  fn recurrency() {
+    #[recurrent(testnet)]
+    struct MyNet {}
+  }
+
+  #[test] // does indeed fail
+  fn nonrecurrency() {
+    // #[nonrecurrent(testnet)]
+    // struct MyNet {}
+  }
+}
+
 /// Custom test to check that basic recurrency is functioning
 mod custom_recurrency_tests {
   use crate as const_cge;

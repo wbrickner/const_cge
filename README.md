@@ -13,7 +13,7 @@ LLVM is able to perform more advanced optimizations, like instruction ellision,
 pipeline-aware reordering, SIMD vectorization, register + stack size minimization, and more.
 
 The generated rust code: 
-- will never allocate, panic, loop, or rely on `std` constructs
+- will never allocate, panic, or rely on `std` (unless using `std` feature!)
 - has perfect determinism
 - has input and output dimensions which are statically declared
 - has internal data dependencies that are statically analyzable
@@ -22,6 +22,20 @@ The generated rust code:
 - incurs zero overhead cost at runtime
 
 Check out [`eant2`](https://github.com/pengowen123/eant2) to see how to train a neural network compatible with `const_cge`.
+
+```toml
+const_cge = "0.2"
+```
+
+### Floating Point in `#![no_std]`-land
+
+You can pick a floating point implementation through features: `libm` (default), `std`, or `micromath`, like:
+
+```toml
+const_cge = "0.2" # use libm
+const_cge = { version = "0.2", default-features = false, features = ["std"] } # `no_std` incompatible
+const_cge = { version = "0.2", default-features = false, features = ["micromath"] } # use micromath
+```
 
 # Simple Example
 
@@ -109,6 +123,92 @@ struct SmallerFaster;
 ```
 
 - Only `f64` and `f32` are supported for now. Maybe I will add support for `f16` / integer / fixed-precision in the future.
+
+# Netcrates!
+
+## What is a netcrate?
+
+- `const_cge` netcrates are pre-trained neural networks _as crates_!
+
+- `const_cge` functions as a common format, allowing the community to share
+neural networks for common tasks.
+
+Let's see how you'd use one!
+
+```rust
+use netcrate_ocr::ocr;
+#[network(ocr)]
+struct HandwritingOCR;
+```
+
+## Publishing a netcrate
+
+In your `Cargo.toml` file, 
+- make sure to **disable `default-features`** for `const_cge`, 
+- and **add an `std`** feature:
+```toml
+[dependencies]
+const_cge = { version = "0.2", default-features = false } # <== important!
+
+[features]
+std = [] # <== important!
+```
+
+In your `stc/lib.rs` file,
+- make sure to **conditionally enable `no_std`**
+```rust
+#![cfg_attr(not(feature = "std"), no_std)]  // <== important!
+const_cge::netcrate!(ocr_english  = "nets/ocr/en.cge");
+const_cge::netcrate!(ocr_japanese = "nets/ocr/jp.cge");
+```
+
+Done!
+
+### Extensions
+
+If you'd like to provide a nicer interface that wraps your network,
+please write a macro which provides the implementation, like so:
+
+```rust
+#[macro_export]
+macro_rules! ocr_ext {
+  ($name: ident, $numeric_type: ty) => {
+    impl $name {
+      /// Returns the unicode char
+      pub fn predict_char(&mut self, image: &ImageBuffer) -> char {
+        // access everything a `const_cge` struct normally has:
+        let output_dim = $name::OUTPUT_SIZE;
+        self.recurrent_state_mut()[0] *= -1.0;
+
+        // even access the particluar activation function implementation the end
+        // user has chosen:
+        const_cge::activations::$numeric_type::relu(x);
+      }
+    }
+
+    // or produce a new struct, whatever you think is best.
+    struct SmolOCR {
+      network: $name,
+      extra_memory_bank: [$numeric_type; 6 * $name::OUTPUT_SIZE]
+    }
+
+    impl SmolOCR {
+      //...
+  }
+}
+```
+
+And an end user can simply:
+
+```rust
+use netcrate_ocr::*;
+#[network(ocr_japanese, numeric_type = f32)]
+struct JapaneseOCR;
+ocr_ext!(JapaneseOCR, f32);
+```
+<sub>
+This approach is a necessary evil because we must allow users to choose their own numerical backend for `no_std` environments, and the options may evolve over time. Writing an extension macro is the least-terrible approach I could think of to fit this particular use-case.
+</sub>
 
 # Design Goals & Drawbacks
 
