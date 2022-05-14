@@ -16,16 +16,52 @@ pub struct Invocation {
   pub recurrency_constraint: RecurrencyConstraint
 }
 
+/// The type of path we were supplied (e.g. my_netcrate::good_net or "nets/good_net.cge")
+pub enum CgeType {
+  /// Given a module to a netcrate.
+  Module(syn::Path),
+
+  /// Given a path to a CGE file.
+  File(String),
+
+  /// Given direct data as a string.
+  Direct(String)
+}
+
 /// Details about the invocation config of the macro.
 pub struct Config {
-  /// path to the network
-  pub cge_path:     String,
+  /// the network
+  pub cge:          CgeType,
 
   /// The **target** numeric type.
   pub numeric_type: NumericType
 }
 
 pub fn core(invocation: Invocation) -> TokenStream {
+  if let CgeType::Module(p) = invocation.config.cge {
+    let invocation_ident = match invocation.recurrency_constraint {
+      RecurrencyConstraint::DontCare  => quote!(network),
+      RecurrencyConstraint::Required  => quote!(recurrent),
+      RecurrencyConstraint::Forbidden => quote!(nonrecurrent),
+    };
+
+    let numeric_token = invocation.config.numeric_type.token();
+
+    let item = invocation.item;
+    return quote! {
+      // we have been given another macro (the one prepared by `netcrate!`),
+      // which then expands to the `#[network("literal_cge_data")]` etc.,
+      // which then expands to the actual implementation. convoluted.
+      #p!(
+        #invocation_ident,
+        #item,
+        
+        // ADD MORE ARGUMENTS HERE IF YOU ADD SUPPORT FOR THEM IN THE MAIN MACRO (network, etc)
+        numeric_type = #numeric_token
+      );
+    }.into()
+  }
+
   let Synthesis {
     recurrency_count,
     documentation,
@@ -50,9 +86,11 @@ pub fn core(invocation: Invocation) -> TokenStream {
   // fail for enum and non-unit structs (ONLY IF the network requires a persistence field).
   let name = match invocation.item {
     syn::Item::Struct(ref s) => {
-      if !matches!(s.fields, Fields::Unit) {
-        if recurrency_count != 0 {
-          panic!("Your network is recurrent. Only unit structs support recurrency at this time.");
+      if recurrency_count != 0 {
+        match &s.fields {
+          Fields::Named(f) if f.named.len() != 0 => panic!("Your network is recurrent. Only unit structs (no fields) support recurrency at this time."),
+          Fields::Unnamed(f) if f.unnamed.len() != 0 => panic!("Your network is recurrent. Only unit structs (no fields) support recurrency at this time."),
+          _ => {}
         }
       }
 
@@ -76,12 +114,7 @@ pub fn core(invocation: Invocation) -> TokenStream {
 
   let item = if let Item::Struct(mut s) = invocation.item.clone() {
     // we now need to add the recurrent data field
-    match &s.fields {
-      // unit structs => MyStruct { #p } (if needed)
-      Fields::Unit => s.fields = Fields::Named(parse_quote!({ #persistence_field })),
-      // do nothing, if it was recurrent and non-unit, we would have panicked above.
-      _ => {}
-    };
+    s.fields = Fields::Named(parse_quote!({ #persistence_field }));
 
     Item::Struct(s)
   } else {

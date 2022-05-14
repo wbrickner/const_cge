@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use cge::{Network, gene::GeneExtras, Activation};
 use proc_macro2::TokenStream;
 use quote::quote;
-use crate::{recurrence, evaluator, macro_core::Invocation, numeric_type::NumericType};
+use crate::{recurrence, evaluator, macro_core::{Invocation, CgeType}, numeric_type::NumericType};
 
 /// - Number of recurrent neural states we must retain (0 implies nonrecurrent architecture)
 /// - A bundle of rust code to be interpolated in the final step
@@ -41,7 +41,15 @@ fn activation_path(activation: Activation, numeric_type: NumericType) -> TokenSt
 
 /// Load, evaluate, and synthesize an implementation.
 pub fn synthesize(invocation: &Invocation) -> Synthesis {
-  let mut network = load_network(&invocation.config.cge_path);
+  // construct a network from a file or a literal (module invocations cannot reach this point)
+  let mut network = match invocation.config.cge {
+    CgeType::File(ref path)   => load_network(path),
+    CgeType::Direct(ref data) => {
+      Network::from_str(data)
+        .expect("I've inferred that you're trying to supply CGE data directly as a string, but I can't parse your input as CGE.")
+    },
+    CgeType::Module(_)                => unreachable!()
+  };
 
   // literally a list of floating point operations as rust code
   let mut computations_list = vec![];
@@ -103,6 +111,7 @@ pub fn synthesize(invocation: &Invocation) -> Synthesis {
           pub fn with_recurrent_state(persistence: &[#numeric_token; #recurrency_count]) -> Self {
             Self { persistence: *persistence }
           }
+          
           /// Overwrite the networks recurrent state with the given one.
           /// - Useful for "restoring a snapshot" of the network's recurrent state (even if you don't know what any part of it really means).
           pub fn set_recurrent_state(&mut self, persistence: &[#numeric_token; #recurrency_count]) {
@@ -128,9 +137,12 @@ pub fn synthesize(invocation: &Invocation) -> Synthesis {
   // dynamically generate doc comments (with usage examples!) that match _this particlar network_.
   let documentation = {
     let build_info = format!(
-"- Compiled from CGE file: `{}`
-- {recurrency_statement}",
-    invocation.config.cge_path, 
+"{source_statement}- {recurrency_statement}",
+    source_statement = match invocation.config.cge {
+      CgeType::File(ref path) => format!("- Compiled from CGE file: `{}`\n", path),
+      CgeType::Direct(_) => "".into(),
+      CgeType::Module(_) => "".into()
+    }, 
     recurrency_statement = if recurrency_count == 0 {
 "No recurrency detected
   - network is stateless (a ZST)

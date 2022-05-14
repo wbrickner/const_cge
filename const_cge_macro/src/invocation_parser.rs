@@ -1,20 +1,39 @@
 use proc_macro2::Ident;
-use syn::{Token, ExprLit, TypePath, Lit};
-use crate::{macro_core::Config, numeric_type::NumericType};
+use syn::{Token, ExprLit, TypePath, Lit, Expr, ExprPath};
+use crate::{macro_core::{Config, CgeType}, numeric_type::NumericType};
 
 impl syn::parse::Parse for crate::macro_core::Config {
   fn parse(input: syn::parse::ParseStream<'_>) -> syn::Result<Self> {
-    // extract the CGE path
-    let cge_path = {
-      match input.parse::<ExprLit>() {
-        Ok(ExprLit { lit: Lit::Str(string), .. }) => string.value(),
+    // extract the CGE
+    let cge = {
+      match input.parse::<Expr>() {
+        // -  invoked like #[network("path/to/file.cge")]
+        // or invoked like #[network("literal cge data")]
+        Ok(Expr::Lit(ExprLit { lit: Lit::Str(string), .. })) => {
+          // we must determine if the literal is a valid path, or if it is data.
+          // to do this, I will first try to treat it as a path.
+          // if that fails, I will try to treat it as data.
+
+          let string = string.value();
+          match std::path::PathBuf::try_from(string.clone()) {
+            // it parses as a valid path AND it exists
+            Ok(p) if p.exists() => CgeType::File(string),
+
+            // it either isn't a valid path, or it could be, but that file doesn't exist.
+            // so we will assume it is a `Direct` CGE string
+            _ => CgeType::Direct(string)
+          }
+        },
+
+        // invoked like #[network(ocr_network)]
+        Ok(Expr::Path(ExprPath { path, .. })) => CgeType::Module(path),
 
         // abort compilation with error
-        _ => panic!("Didn't get string literal path to CGE file. Make sure the CGE path is the first argument, like: `#[network(\"path/to/file.cge\")]`.")
+        _ => panic!("Expected either a string path to a CGE file, or a module name. Make sure the CGE path string or module path is the first argument, like: `#[network(\"path/to/file.cge\")]` or `#[network(some_netcrate)]`.")
       }
     };
 
-    // parse the argument name
+    // manually parse remaining arguments.
     let numeric_type = {
       if let Some(_) = input.parse::<Option<Token![,]>>().ok() {
         if let Some(arg_name) = input.parse::<Ident>().ok() {
@@ -45,7 +64,7 @@ impl syn::parse::Parse for crate::macro_core::Config {
       }
     };
 
-    Ok(Config { cge_path, numeric_type })
+    Ok(Config { cge, numeric_type })
   }
 }
 
@@ -61,12 +80,6 @@ macro_rules! parse_invocation {
         item:   syn::parse_macro_input!($item_stream as syn::Item),
         recurrency_constraint: $recurrent
       }
-
-      // let expression = syn::parse_macro_input!($attr_stream as syn::Expr);
-      // let string = match expression {
-      //   syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(string), .. }) => string.value(),
-      //   _ => panic!("Didn't get string literal path to CGE file. Usage: `#[{}(\"path/to/cge/file.cge\")]`", $name),
-      // };
     }
   };
 }
