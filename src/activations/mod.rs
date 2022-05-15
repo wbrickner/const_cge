@@ -23,3 +23,6 @@
   feature = "micromath", 
   feature = "expose"
 ))] pub use micromath;
+
+// always publish integers (always available)
+mod integers; pub use integers::*;

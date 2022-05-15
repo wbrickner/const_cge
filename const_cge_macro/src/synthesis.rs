@@ -46,7 +46,7 @@ pub fn synthesize(invocation: &Invocation) -> Synthesis {
     CgeType::File(ref path)   => load_network(path),
     CgeType::Direct(ref data) => {
       Network::from_str(data)
-        .expect("I've inferred that you're trying to supply CGE data directly as a string, but I can't parse your input as CGE.")
+        .expect("Your input doesn't look like a path (or the file isn't accessible to me). I've inferred that you might be trying to supply CGE data directly as a string, but the input also doesn't parse as valid CGE.")
     },
     CgeType::Module(_)                => unreachable!()
   };
