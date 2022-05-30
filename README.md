@@ -206,9 +206,58 @@ use netcrate_ocr::*;
 struct JapaneseOCR;
 ocr_ext!(JapaneseOCR, f32);
 ```
-<sub>
-This approach is a necessary evil because we must allow users to choose their own numerical backend for `no_std` environments, and the options may evolve over time. Writing an extension macro is the least-terrible approach I could think of to fit this particular use-case.
-</sub>
+
+<details>
+  <summary>So, how do "netcrates" <i>really</i> work?</summary>
+
+- This approach is a necessary evil because we must allow users to choose their own numerical backend for `no_std` environments, and the options will evolve.
+- There are enormous headaches that come with any approach in which you publish a generated implementation, as it is fixed in time, and generated using the author's `const_cge` version, not the end user's version.
+- The solution of course is to not expose a particular generated implementation, but to instead expose the data encoding the network, and let the end user's `const_cge` make all the implementation decisions.
+- Macro expansion is a little complicated, not to mention you cannot access the values of constants from inside a proc macro.  So what's the trick?
+
+```text
+   ╔═════════════════════════════════════════════════════════════════╗
+   ║             Smuggling constant values across crate              ║
+   ║               boundaries at macro-expansion time                ║
+   ╚═════════════════════════════════════════════════════════════════╝
+   ┏━━━━━━━━━┓                                                        
+   ┃ ocr_net ┃                                                        
+   ┣━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━┓                                  
+   ┃ ┌───────────────────────────┐ ┃                                  
+   ┃ │ netcrate!(z = "path.cge") │ ┃ ──┐  ┌──────────────────────────┐
+   ┃ └┬─────────────────────────┬┘ ┃   │  │  proc-macro expands to   │
+   ┃ ┌▼─────────────────────────▼┐ ┃   ├──┤  exported macro_rules,   │
+   ┃ │ #[macro_export]           │ ┃   │  │ which in turn expands to │
+   ┃ │ macro_rules! z {          │ ┃   │  │      smuggled data.      │
+┌─ ┃ │  () => "<RAW_DATA>"       │ ┃ ──┘  └──────────────────────────┘
+│  ┃ │ }                         │ ┃                                  
+│  ┃ └───────────────────────────┘ ┃                                  
+│  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛                                  
+│  ┏━━━━━━━━━━┓                                                       
+│  ┃ end_user ┃                                                       
+│  ┣━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━┓                                  
+│  ┃ ┌───────────────────────────┐ ┃                                  
+└▶ ┃ │ #[network(ocr_net::z)]    │ ┃ ──┐  ┌──────────────────────────┐
+   ┃ │ struct UserNet;           │ ┃   │  │  proc-macro recognizes   │
+   ┃ └┬─────────────────────────┬┘ ┃   ├──┤ macro input, invokes it, │
+   ┃ ┌▼─────────────────────────▼┐ ┃   │  │   producing a daughter   │
+   ┃ │ #[network(ocr_net::z!())] │ ┃ ──┘  │   `network` invocation   │
+   ┃ │ struct UserNet;           │ ┃      └──────────────────────────┘
+   ┃ └┬─────────────────────────┬┘ ┃      ┌──────────────────────────┐
+   ┃ ┌▼─────────────────────────▼┐ ┃      │    rustc expands the     │
+   ┃ │ #[network("<RAW_DATA>")]  │ ┃ ──┬──┤    macro_rules macro,    │
+   ┃ │ struct UserNet;           │ ┃   │  │    producing a final     │
+   ┃ └┬─────────────────────────┬┘ ┃   │  │ invocation of `network`  │
+   ┃ ┌▼─────────────────────────▼┐ ┃   │  └──────────────────────────┘
+   ┃ │   [NET IMPLEMENTATION]    │ ┃   │  ┌──────────────────────────┐
+   ┃ │                           │ ┃   └──┤ `network` recognizes raw │
+   ┃ │  Numeric type, backend,   │ ┃      │ data input, and finally  │
+   ┃ │     and optimizations     │ ┃      │  generates the desired   │
+   ┃ │    all chosen by user.    │ ┃      │      implementation      │
+   ┃ └───────────────────────────┘ ┃      └──────────────────────────┘
+   ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛                                  
+```
+</details>
 
 # Design Goals & Drawbacks
 
