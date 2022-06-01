@@ -1,0 +1,42 @@
+{
+  "version": "1",
+  "network": {
+    "metadata": {
+      "description": "A simple network with extra user-defined data."
+    },
+    "activation": "tanh",
+    "genome": [
+      {
+        "kind": "neuron",
+        "id": 2,
+        "num_inputs": 3,
+        "weight": 0.5
+      },
+      {
+        "kind": "recurrentjumper",
+        "source_id": 2,
+        "weight": 0.8
+      },
+      {
+        "kind": "input",
+        "id": 0,
+        "weight": 0.1
+      },
+      {
+        "kind": "input",
+        "id": 1,
+        "weight": 0.3
+      }
+    ],
+    "recurrent_state": [
+      0.6043677771171636
+    ],
+    "extra": {
+      "x": 1,
+      "y": [
+        2.0,
+        3.0
+      ]
+    }
+  }
+}

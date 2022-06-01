@@ -1,8 +1,8 @@
 use std::collections::HashSet;
-use cge::{Network, gene::GeneExtras, Activation};
+use cge::{Network, gene::Gene, Activation, WithRecurrentState};
 use proc_macro2::TokenStream;
 use quote::quote;
-use crate::{recurrence, evaluator, macro_core::{Invocation, CgeType}, numeric_type::NumericType};
+use crate::{recurrency, evaluator::{self, ResultNames}, macro_core::{Invocation, CgeType}, numeric_type::NumericType};
 
 /// - Number of recurrent neural states we must retain (0 implies nonrecurrent architecture)
 /// - A bundle of rust code to be interpolated in the final step
@@ -16,10 +16,10 @@ pub struct Synthesis {
 }
 
 /// Load network
-fn load_network(cge_path: &str) -> Network {
-  let network = Network::load_from_file(&cge_path);
+fn load_network(cge_path: &str) -> Network<f64> {
+  let network = Network::<f64>::load_file::<(), _>(&cge_path, cge::WithRecurrentState(false));
   match network {
-    Ok(n) => n,
+    Ok((n, _, _)) => n,
     Err(e) => panic!("Failed to open CGE file ({})", e)
   }
 }
@@ -29,7 +29,7 @@ fn activation_path(activation: Activation, numeric_type: NumericType) -> TokenSt
 
   match activation {
     Activation::Linear       => quote! { const_cge::activations::#numeric_type::linear },
-    Activation::Threshold    => quote! { const_cge::activations::#numeric_type::threshold },
+    Activation::UnitStep     => quote! { const_cge::activations::#numeric_type::threshold },
     Activation::Relu         => quote! { const_cge::activations::#numeric_type::relu },
     Activation::Sign         => quote! { const_cge::activations::#numeric_type::sign },
     Activation::Sigmoid      => quote! { const_cge::activations::#numeric_type::sigmoid },
@@ -42,55 +42,59 @@ fn activation_path(activation: Activation, numeric_type: NumericType) -> TokenSt
 /// Load, evaluate, and synthesize an implementation.
 pub fn synthesize(invocation: &Invocation) -> Synthesis {
   // construct a network from a file or a literal (module invocations cannot reach this point)
-  let mut network = match invocation.config.cge {
+  let network = match invocation.config.cge {
     CgeType::File(ref path)   => load_network(path),
     CgeType::Direct(ref data) => {
-      Network::from_str(data)
-        .expect("Your input doesn't look like a path (or the file isn't accessible to me). I've inferred that you might be trying to supply CGE data directly as a string, but the input also doesn't parse as valid CGE.")
+      let (net, _, _) = Network::<f64>::load_str::<()>(data, WithRecurrentState(false))
+        .expect("Your input doesn't look like a path (or the file isn't accessible to me). I've inferred that you might be trying to supply CGE data directly as a string, but the input also doesn't parse as valid CGE.");
+
+      net
     },
-    CgeType::Module(_)                => unreachable!()
+    CgeType::Module(_) => unreachable!()
   };
 
   // literally a list of floating point operations as rust code
   let mut computations_list = vec![];
   let mut computations_end = vec![];
-  let recurrence_table = recurrence::identify_recurrence(&network);
 
-  let size = network.size;
-  let activation = network.function.clone();
+  let activation = network.activation();
   // gimme the path to an optimized implementation for the activation function
   // (e.g. `const_cge::activations::f32::relu`)
-  // - this allows LLVM to easily see the function bodies are shared between multiple networks,
-  //   reducing code size (and perhaps compilation time).
+  // - this allows LLVM to effortlessly see the function bodies are shared between multiple networks,
+  //   reducing code size (and perhaps compilation time), while still allowing the compiler to inline according
+  //   to its heuristic.
+  // - this makes activation functions usable outside of `const_cge` codegen.
   let activation_fn_path = activation_path(activation, invocation.config.numeric_type);
 
-  let recurrency_count = recurrence_table.len();
+  let recurrency_table = recurrency::identify_recurrence(&network);
+  let recurrency_count = recurrency_table.len();
   let input_count = {
     // The number of inputs to a network is the number of unique input IDs
     // found among all Input genes in the genome.
-    
     let mut input_ids = HashSet::new();
+
     network
-      .genome
+      .genome()
       .iter()
-      .filter_map(|g| match g.variant {
-        GeneExtras::Input(_) => Some(g.id),
+      .filter_map(|g| match g {
+        Gene::Input(i) => Some(i.id()),
         _ => None
       })
-      .for_each(|id| { input_ids.insert(id); });
+      .for_each(|id| { input_ids.insert(id.as_usize()); });
     
     input_ids.len()
   };
   let output_count = evaluator::evaluate(
-    &mut network, 
-    0..size,
+    &network.genome(),
+    &network.neuron_info_map(),
+    0..network.len(),
     true, 
     false, 
     true, 
     &mut computations_list, 
     &mut computations_end, 
-    &mut 0, 
-    &recurrence_table,
+    &mut ResultNames::default(),
+    &recurrency_table,
     invocation.config.numeric_type,
     activation_fn_path
   ).expect("Corrupt CGE: network appears to have no outputs");

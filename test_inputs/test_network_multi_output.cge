@@ -1,0 +1,87 @@
+{
+  "version": "1",
+  "network": {
+    "metadata": {
+      "description": "A network with multiple outputs."
+    },
+    "activation": "bentidentity",
+    "genome": [
+      {
+        "kind": "neuron",
+        "id": 0,
+        "num_inputs": 2,
+        "weight": 0.2
+      },
+      {
+        "kind": "neuron",
+        "id": 1,
+        "num_inputs": 2,
+        "weight": 0.5
+      },
+      {
+        "kind": "input",
+        "id": 0,
+        "weight": 0.4
+      },
+      {
+        "kind": "input",
+        "id": 1,
+        "weight": 0.8
+      },
+      {
+        "kind": "input",
+        "id": 1,
+        "weight": 0.6
+      },
+      {
+        "kind": "neuron",
+        "id": 2,
+        "num_inputs": 3,
+        "weight": 0.4
+      },
+      {
+        "kind": "forwardjumper",
+        "source_id": 1,
+        "weight": 0.7
+      },
+      {
+        "kind": "input",
+        "id": 1,
+        "weight": 0.5
+      },
+      {
+        "kind": "input",
+        "id": 0,
+        "weight": 0.6
+      },
+      {
+        "kind": "neuron",
+        "id": 3,
+        "num_inputs": 2,
+        "weight": 0.9
+      },
+      {
+        "kind": "forwardjumper",
+        "source_id": 1,
+        "weight": 0.2
+      },
+      {
+        "kind": "neuron",
+        "id": 4,
+        "num_inputs": 2,
+        "weight": 0.3
+      },
+      {
+        "kind": "input",
+        "id": 1,
+        "weight": 0.6
+      },
+      {
+        "kind": "bias",
+        "value": 3.0
+      }
+    ],
+    "recurrent_state": null,
+    "extra": null
+  }
+}

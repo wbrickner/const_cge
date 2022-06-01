@@ -2,7 +2,7 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{Item, parse_quote, Fields};
-use crate::{numeric_type::NumericType, recurrence::RecurrencyConstraint};
+use crate::{numeric_type::NumericType, recurrency::RecurrencyConstraint};
 use super::synthesis::{synthesize, Synthesis};
 
 /// All the invocation information.
