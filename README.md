@@ -154,7 +154,7 @@ const_cge = { version = "0.2", default-features = false } # <== important!
 std = [] # <== important!
 ```
 
-In your `stc/lib.rs` file,
+In your `src/lib.rs` file,
 - make sure to **conditionally enable `no_std`**
 ```rust
 #![cfg_attr(not(feature = "std"), no_std)]  // <== important!
@@ -261,7 +261,8 @@ ocr_ext!(JapaneseOCR, f32);
 
 # Design Goals & Drawbacks
 
-- You can accomplish quite a lot with "small" networks, especially for control tasks. `const_cge` is not intended for use in "deep learning" tasks (language modeling, etc).
+- You can accomplish quite a lot with "small" networks, especially for heuristic and control tasks. 
+- `const_cge` is not intended for use in many deep learning tasks (language modeling, image object detection, etc).
 - Tradeoffs that enable embedded use cases (robotics, 5¢ microcontrollers)
 - Lots of individual `const_cge` networks in the same binary may end up being _larger_ or _slower_ than a runtime evaluation approach.
 This will depend on the target machine and the networks you're evaluating. If you really care, measure. This library should cover the common use case perfectly.
