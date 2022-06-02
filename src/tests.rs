@@ -49,6 +49,7 @@ mod custom_recurrency_tests {
 /// Test `./test_inputs/test_network_v1.cge`
 mod test_network_v1 {
   use crate as const_cge; 
+  use assert_float_eq::*;
   use const_cge::*;
   use cge::*;
   use proptest::{
@@ -85,7 +86,10 @@ mod test_network_v1 {
 
       let runtime_outputs = runtime.evaluate(&input_vector[..]).unwrap();
 
-      assert_eq!(static_outputs, runtime_outputs);
+      assert_eq!(static_outputs.len(), runtime_outputs.len());
+      for (s, r) in static_outputs.iter().zip(runtime_outputs.iter()) {
+        assert_float_absolute_eq!(s, r);
+      }
     });
   }
 
@@ -117,7 +121,11 @@ mod test_network_v1 {
         };
 
         let runtime_outputs = runtime.evaluate(&input_vector[..]).unwrap();
-        assert_eq!(static_outputs, runtime_outputs);
+        
+        assert_eq!(static_outputs.len(), runtime_outputs.len());
+        for (s, r) in static_outputs.iter().zip(runtime_outputs.iter()) {
+          assert_float_absolute_eq!(s, r);
+        }
       }
     });
   }
@@ -126,6 +134,7 @@ mod test_network_v1 {
 /// Test `./test_inputs/fig_5_3_paper.cge` 
 /// Network from [Figure 5.3](https://www.semanticscholar.org/paper/Towards-a-unified-approach-to-learning-and-Kassahun/f0a39d0e8e891cb9ff6a81172f0c5ebb37ea52e9/figure/30) of [the paper](https://www.semanticscholar.org/paper/Towards-a-unified-approach-to-learning-and-Kassahun/f0a39d0e8e891cb9ff6a81172f0c5ebb37ea52e9)
 mod with_extra_data_v1 {
+  use assert_float_eq::*;
   use crate as const_cge; 
   use const_cge::*;
   use cge::*;
@@ -143,7 +152,7 @@ mod with_extra_data_v1 {
   fn recurrent_memorywipe_50k_trials() {
     // statically create network
     #[network("./test_inputs/with_extra_data_v1.cge", numeric_type = f64)]
-    struct FigureNet;
+    struct ExtraData;
 
     // dynamically load the exact same network
     let (mut runtime, _, _) = Network::load_file::<(), _>("./test_inputs/with_extra_data_v1.cge", WithRecurrentState(false))
@@ -152,17 +161,21 @@ mod with_extra_data_v1 {
 
     // gimme 50,000 `[f64; 2]`; where each f64 falls in [-1, +1]
     proptest!(ProptestConfig::with_cases(50_000), |(input_vector in uniform2(-1.0f64..1.0f64))| {
-      let mut net = FigureNet::default();
+      let mut net = ExtraData::default();
       let mut runtime = runtime.clone();
 
       let static_outputs = {
-        let mut outputs = [0.0; FigureNet::OUTPUT_COUNT];
+        let mut outputs = [0.0; ExtraData::OUTPUT_COUNT];
         net.evaluate(&input_vector, &mut outputs);
         outputs.to_vec()
       };
 
       let runtime_outputs = runtime.evaluate(&input_vector[..]).unwrap();
-      assert_eq!(static_outputs, runtime_outputs);
+      
+      assert_eq!(static_outputs.len(), runtime_outputs.len());
+      for (s, r) in static_outputs.iter().zip(runtime_outputs.iter()) {
+        assert_float_absolute_eq!(s, r);
+      }
     });
   }
 
@@ -194,7 +207,11 @@ mod with_extra_data_v1 {
         };
 
         let runtime_outputs = runtime.evaluate(&input_vector[..]).unwrap();
-        assert_eq!(static_outputs, runtime_outputs);
+        
+        assert_eq!(static_outputs.len(), runtime_outputs.len());
+        for (s, r) in static_outputs.iter().zip(runtime_outputs.iter()) {
+          assert_float_absolute_eq!(s, r);
+        }
       }
     });
   }
