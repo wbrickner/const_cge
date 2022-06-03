@@ -67,9 +67,12 @@ pub fn evaluate(
         let result_id = result_names.advance();
 
         // sum the most recently visited N inputs
-        let inputs = stack
+        let mut inputs = stack
           .pop(input_count)
           .unwrap_or_else(|| panic!("Corrupt CGE: neuron (ID {:?}) did not receive enough inputs (expected {}, but only received {})", neuron_id, input_count, stack.data.len()));
+
+        // reverse the order of sum to provide a perfect bitwise match with `cge`.
+        inputs.reverse();
 
         computations.push(quote! {
           let #result_id = #(#inputs)+*;            // sum the inputs for neuron ##neuron_id

@@ -86,10 +86,11 @@ mod test_network_v1 {
 
       let runtime_outputs = runtime.evaluate(&input_vector[..]).unwrap();
 
-      assert_eq!(static_outputs.len(), runtime_outputs.len());
-      for (s, r) in static_outputs.iter().zip(runtime_outputs.iter()) {
-        assert_float_absolute_eq!(s, r);
-      }
+      assert_eq!(static_outputs, runtime_outputs);
+      // assert_eq!(static_outputs.len(), runtime_outputs.len());
+      // for (s, r) in static_outputs.iter().zip(runtime_outputs.iter()) {
+      //   assert_float_absolute_eq!(s, r);
+      // }
     });
   }
 
@@ -122,10 +123,11 @@ mod test_network_v1 {
 
         let runtime_outputs = runtime.evaluate(&input_vector[..]).unwrap();
         
-        assert_eq!(static_outputs.len(), runtime_outputs.len());
-        for (s, r) in static_outputs.iter().zip(runtime_outputs.iter()) {
-          assert_float_absolute_eq!(s, r);
-        }
+        assert_eq!(static_outputs, runtime_outputs);
+        // assert_eq!(static_outputs.len(), runtime_outputs.len());
+        // for (s, r) in static_outputs.iter().zip(runtime_outputs.iter()) {
+        //   assert_float_absolute_eq!(s, r);
+        // }
       }
     });
   }
@@ -172,10 +174,11 @@ mod with_extra_data_v1 {
 
       let runtime_outputs = runtime.evaluate(&input_vector[..]).unwrap();
       
-      assert_eq!(static_outputs.len(), runtime_outputs.len());
-      for (s, r) in static_outputs.iter().zip(runtime_outputs.iter()) {
-        assert_float_absolute_eq!(s, r);
-      }
+      assert_eq!(static_outputs, runtime_outputs);
+      // assert_eq!(static_outputs.len(), runtime_outputs.len());
+      // for (s, r) in static_outputs.iter().zip(runtime_outputs.iter()) {
+      //   assert_float_absolute_eq!(s, r);
+      // }
     });
   }
 
@@ -183,7 +186,7 @@ mod with_extra_data_v1 {
   ///   have identical output for all inputs, with memory, out to 5000 eval cycles.
   /// - Repeat this trial 50 times
   #[test]
-  fn recurrent_5k_cycles_1k_trials() {
+  fn recurrent_256_cycles_2k_trials() {
     // statically create network (enforce recurrency, that is central to what we're testing!)
     #[recurrent("./test_inputs/with_extra_data_v1.cge", numeric_type = f64)]
     struct TestNet;
@@ -194,7 +197,7 @@ mod with_extra_data_v1 {
     runtime.clear_state();
 
     // gimme 50 `vec<[f64; 2]>`, each 5k elements long, where each f64 falls in [-1, +1]
-    proptest!(ProptestConfig::with_cases(50), |(input_vectors in vec(uniform2(-1.0f64..1.0f64), 5000..=5000))| {
+    proptest!(ProptestConfig::with_cases(2000), |(input_vectors in vec(uniform2(-1.0f64..1.0f64), 256..=256))| {
       let mut net = TestNet::default();  // start them both in the same state
       let mut runtime = runtime.clone(); // start them both in the same state
 
@@ -208,10 +211,11 @@ mod with_extra_data_v1 {
 
         let runtime_outputs = runtime.evaluate(&input_vector[..]).unwrap();
         
-        assert_eq!(static_outputs.len(), runtime_outputs.len());
-        for (s, r) in static_outputs.iter().zip(runtime_outputs.iter()) {
-          assert_float_absolute_eq!(s, r);
-        }
+        assert_eq!(static_outputs, runtime_outputs);
+        // assert_eq!(static_outputs.len(), runtime_outputs.len());
+        // for (s, r) in static_outputs.iter().zip(runtime_outputs.iter()) {
+        //   assert_float_absolute_eq!(s, r);
+        // }
       }
     });
   }
