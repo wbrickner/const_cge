@@ -174,11 +174,11 @@ mod with_extra_data_v1 {
 
       let runtime_outputs = runtime.evaluate(&input_vector[..]).unwrap();
       
-      assert_eq!(static_outputs, runtime_outputs);
-      // assert_eq!(static_outputs.len(), runtime_outputs.len());
-      // for (s, r) in static_outputs.iter().zip(runtime_outputs.iter()) {
-      //   assert_float_absolute_eq!(s, r);
-      // }
+      // const_cge uses `libm` by default, and the activation functions are not bitwise identical.
+      assert_eq!(static_outputs.len(), runtime_outputs.len());
+      for (s, r) in static_outputs.iter().zip(runtime_outputs.iter()) {
+        assert_float_absolute_eq!(s, r);
+      }
     });
   }
 
@@ -211,11 +211,11 @@ mod with_extra_data_v1 {
 
         let runtime_outputs = runtime.evaluate(&input_vector[..]).unwrap();
         
-        assert_eq!(static_outputs, runtime_outputs);
-        // assert_eq!(static_outputs.len(), runtime_outputs.len());
-        // for (s, r) in static_outputs.iter().zip(runtime_outputs.iter()) {
-        //   assert_float_absolute_eq!(s, r);
-        // }
+        // const_cge uses `libm` by default, and the activation functions are not bitwise identical.
+        assert_eq!(static_outputs.len(), runtime_outputs.len());
+        for (s, r) in static_outputs.iter().zip(runtime_outputs.iter()) {
+          assert_float_absolute_eq!(s, r);
+        }
       }
     });
   }
